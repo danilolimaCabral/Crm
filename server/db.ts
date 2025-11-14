@@ -1,5 +1,6 @@
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { eq, desc } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { InsertUser, users } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 
@@ -9,7 +10,8 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL);
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -40,24 +42,13 @@ export async function createUser(data: {
     name: data.name || null,
     subscriptionPlan: "none",
     subscriptionStatus: "inactive",
-  });
+  }).returning({ id: users.id, email: users.email, name: users.name });
 
-  // Buscar usuário criado
-  const newUser = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-    })
-    .from(users)
-    .where(eq(users.id, Number(result[0].insertId)))
-    .limit(1);
-
-  if (newUser.length === 0) {
+  if (result.length === 0) {
     throw new Error("Failed to create user");
   }
 
-  return newUser[0];
+  return result[0];
 }
 
 /**
@@ -164,7 +155,6 @@ export async function getUserAnalyses(userId: number, limit: number = 20) {
   }
 
   const { analyses } = await import("../drizzle/schema");
-  const { desc } = await import("drizzle-orm");
   
   return await db
     .select()

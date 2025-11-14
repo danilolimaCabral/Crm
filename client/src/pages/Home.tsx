@@ -109,11 +109,10 @@ export default function Home() {
 
   const incrementSearchMutation = trpc.leads.incrementSearchCount.useMutation();
   
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      window.location.href = "/";
-    },
-  });
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/auth";
+  };
 
   const handleAnalyzeClick = () => {
     if (!searchTerm.trim()) {
@@ -338,7 +337,7 @@ export default function Home() {
             <Button 
               variant="outline" 
               onClick={() => {
-                logoutMutation.mutate();
+                handleLogout();
                 toast.success("Logout realizado com sucesso!");
               }}
             >

@@ -1,33 +1,38 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { pgTable, serial, text, varchar, timestamp, integer, pgEnum } from "drizzle-orm/pg-core";
+
+// Enums para PostgreSQL
+export const roleEnum = pgEnum("role", ["user", "admin"]);
+export const subscriptionPlanEnum = pgEnum("subscription_plan", ["none", "free", "pro", "premium"]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "inactive", "cancelled"]);
 
 /**
  * Core user table backing auth flow.
  * Extend this file with additional tables as your product grows.
  * Columns use camelCase to match both database fields and generated types.
  */
-export const users = mysqlTable("users", {
+export const users = pgTable("users", {
   /**
    * Surrogate primary key. Auto-incremented numeric value managed by the database.
    * Use this for relations between tables.
    */
-  id: int("id").autoincrement().primaryKey(),
+  id: serial("id").primaryKey(),
   name: text("name"),
   email: varchar("email", { length: 320 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(), // bcrypt hash
   image: text("image"),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: roleEnum("role").default("user").notNull(),
   
   // Assinatura e planos
-  subscriptionPlan: mysqlEnum("subscriptionPlan", ["none", "free", "pro", "premium"]).default("none").notNull(),
-  subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "inactive", "cancelled"]).default("inactive").notNull(),
-  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
-  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
-  analysesCount: int("analysesCount").default(0).notNull(), // Contador de análises do mês
-  analysesResetDate: timestamp("analysesResetDate").defaultNow().notNull(), // Data para resetar contador
+  subscriptionPlan: subscriptionPlanEnum("subscription_plan").default("none").notNull(),
+  subscriptionStatus: subscriptionStatusEnum("subscription_status").default("inactive").notNull(),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+  analysesCount: integer("analyses_count").default(0).notNull(), // Contador de análises do mês
+  analysesResetDate: timestamp("analyses_reset_date").defaultNow().notNull(), // Data para resetar contador
   
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  lastSignedIn: timestamp("last_signed_in").defaultNow().notNull(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -36,152 +41,148 @@ export type InsertUser = typeof users.$inferInsert;
 /**
  * Tabela para armazenar análises de produtos realizadas pelos usuários
  */
-export const analyses = mysqlTable("analyses", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  searchTerm: varchar("searchTerm", { length: 255 }).notNull(),
+export const analyses = pgTable("analyses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  searchTerm: varchar("search_term", { length: 255 }).notNull(),
   
   // Dados do produto na China
-  productTitle: text("productTitle").notNull(),
-  productPlatform: varchar("productPlatform", { length: 50 }).notNull(),
-  priceUsd: int("priceUsd").notNull(), // Preço em centavos de dólar
-  productRating: int("productRating").notNull(), // Rating * 10 (ex: 4.8 = 48)
-  productImage: text("productImage"),
+  productTitle: text("product_title").notNull(),
+  productPlatform: varchar("product_platform", { length: 50 }).notNull(),
+  priceUsd: integer("price_usd").notNull(), // Preço em centavos de dólar
+  productRating: integer("product_rating").notNull(), // Rating * 10 (ex: 4.8 = 48)
+  productImage: text("product_image"),
   
   // Custos de importação
-  exchangeRate: int("exchangeRate").notNull(), // Taxa de câmbio * 100
-  priceBrl: int("priceBrl").notNull(), // Preço em centavos de real
-  importTax: int("importTax").notNull(), // Imposto em centavos
-  iof: int("iof").notNull(), // IOF em centavos
-  shippingCost: int("shippingCost").notNull(), // Frete em centavos
-  totalCost: int("totalCost").notNull(), // Custo total em centavos
+  exchangeRate: integer("exchange_rate").notNull(), // Taxa de câmbio * 100
+  priceBrl: integer("price_brl").notNull(), // Preço em centavos de real
+  importTax: integer("import_tax").notNull(), // Imposto em centavos
+  iof: integer("iof").notNull(), // IOF em centavos
+  shippingCost: integer("shipping_cost").notNull(), // Frete em centavos
+  totalCost: integer("total_cost").notNull(), // Custo total em centavos
   
   // Análise do mercado brasileiro
-  avgPriceBr: int("avgPriceBr").notNull(), // Preço médio BR em centavos
-  minPriceBr: int("minPriceBr").notNull(),
-  maxPriceBr: int("maxPriceBr").notNull(),
-  totalSellers: int("totalSellers").notNull(),
-  competitionLevel: varchar("competitionLevel", { length: 20 }).notNull(),
-  avgRatingBr: int("avgRatingBr").notNull(), // Rating * 10
+  avgPriceBr: integer("avg_price_br").notNull(), // Preço médio BR em centavos
+  minPriceBr: integer("min_price_br").notNull(),
+  maxPriceBr: integer("max_price_br").notNull(),
+  totalSellers: integer("total_sellers").notNull(),
+  competitionLevel: varchar("competition_level", { length: 20 }).notNull(),
+  avgRatingBr: integer("avg_rating_br").notNull(), // Rating * 10
   
   // Dados da Amazon BR (opcional)
-  amazonAvgPrice: int("amazonAvgPrice"), // Preço médio Amazon em centavos
-  amazonProductCount: int("amazonProductCount"), // Quantidade de produtos
-  amazonSearchUrl: text("amazonSearchUrl"), // URL de busca
-  amazonMinPrice: int("amazonMinPrice"), // Preço mínimo
-  amazonMaxPrice: int("amazonMaxPrice"), // Preço máximo
+  amazonAvgPrice: integer("amazon_avg_price"), // Preço médio Amazon em centavos
+  amazonProductCount: integer("amazon_product_count"), // Quantidade de produtos
+  amazonSearchUrl: text("amazon_search_url"), // URL de busca
+  amazonMinPrice: integer("amazon_min_price"), // Preço mínimo
+  amazonMaxPrice: integer("amazon_max_price"), // Preço máximo
   
   // Resultado da análise
-  profitMargin: int("profitMargin").notNull(), // Margem * 10 (ex: 35.5% = 355)
-  opportunityScore: int("opportunityScore").notNull(), // Score * 10
-  isViable: int("isViable").notNull(), // 0 = não, 1 = sim (boolean)
+  profitMargin: integer("profit_margin").notNull(), // Margem * 10 (ex: 35.5% = 355)
+  opportunityScore: integer("opportunity_score").notNull(), // Score * 10
+  isViable: integer("is_viable").notNull(), // 0 = não, 1 = sim (boolean)
   recommendation: varchar("recommendation", { length: 100 }).notNull(),
   
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export type Analysis = typeof analyses.$inferSelect;
 export type InsertAnalysis = typeof analyses.$inferInsert;
 
 /**
- * Tabela de leads para captura de dados antes do login
+ * Tabela para armazenar leads capturados antes do login
  */
-export const leads = mysqlTable("leads", {
-  id: int("id").autoincrement().primaryKey(),
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  email: varchar("email", { length: 320 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
   phone: varchar("phone", { length: 20 }),
-  source: varchar("source", { length: 100 }).default("website"),
-  freeSearchesUsed: int("freeSearchesUsed").default(0).notNull(),
-  convertedToUser: int("convertedToUser").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  searchCount: integer("search_count").default(0).notNull(),
+  
+  // Dados de rastreamento
+  source: varchar("source", { length: 50 }), // De onde veio (google, facebook, direto)
+  utmSource: varchar("utm_source", { length: 100 }),
+  utmMedium: varchar("utm_medium", { length: 100 }),
+  utmCampaign: varchar("utm_campaign", { length: 100 }),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = typeof leads.$inferInsert;
 
 /**
- * Tabela para armazenar cotações de importação
+ * Tabela para armazenar cotações profissionais
  */
-export const quotations = mysqlTable("quotations", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+export const quotations = pgTable("quotations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
   
-  // Informações gerais
-  quotationName: varchar("quotationName", { length: 255 }).notNull(),
+  // Dados gerais
+  quotationName: varchar("quotation_name", { length: 255 }).notNull(),
   incoterm: varchar("incoterm", { length: 10 }).notNull(), // FOB, CIF, EXW, etc
-  transportType: varchar("transportType", { length: 20 }).notNull(), // maritimo, aereo, rodoviario
-  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
-  exchangeRate: int("exchangeRate").notNull(), // Taxa * 100
+  transportMode: varchar("transport_mode", { length: 20 }).notNull(), // Aéreo, Marítimo
+  currency: varchar("currency", { length: 3 }).notNull(), // USD, CNY, EUR
+  exchangeRate: integer("exchange_rate").notNull(), // Taxa * 100
   
-  // Documentos
-  invoiceUrl: text("invoiceUrl"),
-  packListUrl: text("packListUrl"),
+  // Custos adicionais (em centavos)
+  internationalShipping: integer("international_shipping").default(0).notNull(),
+  insurance: integer("insurance").default(0).notNull(),
+  portFees: integer("port_fees").default(0).notNull(),
+  customsBroker: integer("customs_broker").default(0).notNull(),
+  storage: integer("storage").default(0).notNull(),
+  inlandShipping: integer("inland_shipping").default(0).notNull(),
+  otherFees: integer("other_fees").default(0).notNull(),
   
-  // Custos adicionais (em centavos de BRL)
-  internationalFreight: int("internationalFreight").default(0).notNull(),
-  insurance: int("insurance").default(0).notNull(),
-  storage: int("storage").default(0).notNull(),
-  portFees: int("portFees").default(0).notNull(),
-  customsBrokerFees: int("customsBrokerFees").default(0).notNull(),
-  certifications: int("certifications").default(0).notNull(),
+  // Resultados calculados (em centavos)
+  totalProductValue: integer("total_product_value").notNull(),
+  totalWeight: integer("total_weight").notNull(), // em gramas
+  totalVolume: integer("total_volume").notNull(), // em cm³
+  customsValue: integer("customs_value").notNull(), // Valor aduaneiro
+  totalTaxes: integer("total_taxes").notNull(),
+  totalCost: integer("total_cost").notNull(), // Landed cost
   
-  // Totais calculados (em centavos de BRL)
-  totalFob: int("totalFob").notNull(),
-  totalCustomsValue: int("totalCustomsValue").notNull(), // Valor Aduaneiro
-  totalII: int("totalII").notNull(), // Imposto de Importação
-  totalIPI: int("totalIPI").notNull(),
-  totalPIS: int("totalPIS").notNull(),
-  totalCofins: int("totalCofins").notNull(),
-  totalICMS: int("totalICMS").notNull(),
-  totalLandedCost: int("totalLandedCost").notNull(),
-  
-  status: mysqlEnum("status", ["draft", "completed", "archived"]).default("draft").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export type Quotation = typeof quotations.$inferSelect;
 export type InsertQuotation = typeof quotations.$inferInsert;
 
 /**
- * Tabela para itens individuais de cada cotação
+ * Tabela para itens de uma cotação
  */
-export const quotationItems = mysqlTable("quotationItems", {
-  id: int("id").autoincrement().primaryKey(),
-  quotationId: int("quotationId").notNull(),
+export const quotationItems = pgTable("quotation_items", {
+  id: serial("id").primaryKey(),
+  quotationId: integer("quotation_id").notNull(),
   
   // Dados do produto
   description: text("description").notNull(),
-  ncmCode: varchar("ncmCode", { length: 10 }).notNull(),
-  quantity: int("quantity").notNull(),
-  unitPriceFob: int("unitPriceFob").notNull(), // Em centavos da moeda original
-  totalPriceFob: int("totalPriceFob").notNull(),
+  ncm: varchar("ncm", { length: 10 }).notNull(), // Código NCM
+  quantity: integer("quantity").notNull(),
+  unitPrice: integer("unit_price").notNull(), // em centavos
+  totalPrice: integer("total_price").notNull(), // em centavos
   
-  // Dados físicos (pack list)
-  grossWeight: int("grossWeight"), // Peso em gramas
-  netWeight: int("netWeight"),
-  volume: int("volume"), // Volume em cm³
+  // Dimensões e peso
+  weight: integer("weight"), // em gramas
+  length: integer("length"), // em cm
+  width: integer("width"), // em cm
+  height: integer("height"), // em cm
   
-  // Alíquotas (em porcentagem * 100, ex: 15% = 1500)
-  iiRate: int("iiRate").notNull(),
-  ipiRate: int("ipiRate").notNull(),
-  pisRate: int("pisRate").notNull(),
-  cofinsRate: int("cofinsRate").notNull(),
-  icmsRate: int("icmsRate").notNull(),
+  // Impostos calculados (em centavos)
+  ii: integer("ii").notNull(), // Imposto de Importação
+  ipi: integer("ipi").notNull(),
+  pis: integer("pis").notNull(),
+  cofins: integer("cofins").notNull(),
+  icms: integer("icms").notNull(),
   
-  // Impostos calculados (em centavos de BRL)
-  customsValue: int("customsValue").notNull(), // Valor Aduaneiro
-  iiAmount: int("iiAmount").notNull(),
-  ipiAmount: int("ipiAmount").notNull(),
-  pisAmount: int("pisAmount").notNull(),
-  cofinsAmount: int("cofinsAmount").notNull(),
-  icmsAmount: int("icmsAmount").notNull(),
-  landedCostPerUnit: int("landedCostPerUnit").notNull(),
-  landedCostTotal: int("landedCostTotal").notNull(),
+  // Alíquotas aplicadas (em porcentagem * 10)
+  iiRate: integer("ii_rate").notNull(),
+  ipiRate: integer("ipi_rate").notNull(),
+  pisRate: integer("pis_rate").notNull(),
+  cofinsRate: integer("cofins_rate").notNull(),
+  icmsRate: integer("icms_rate").notNull(),
   
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export type QuotationItem = typeof quotationItems.$inferSelect;

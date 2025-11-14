@@ -399,11 +399,9 @@ export const appRouter = router({
           email: input.email,
           phone: input.phone || null,
           source: "website",
-          freeSearchesUsed: 0,
-          convertedToUser: 0,
-        });
+        }).returning({ id: leads.id });
 
-        return { leadId: result[0].insertId.toString(), existing: false };
+        return { leadId: result[0].id.toString(), existing: false };
       }),
 
     incrementSearchCount: publicProcedure
@@ -428,10 +426,10 @@ export const appRouter = router({
         }
 
         await db.update(leads)
-          .set({ freeSearchesUsed: (lead[0].freeSearchesUsed || 0) + 1 })
+          .set({ searchCount: (lead[0].searchCount || 0) + 1 })
           .where(eq(leads.id, leadId));
 
-        return { searchesUsed: (lead[0].freeSearchesUsed || 0) + 1 };
+        return { searchesUsed: (lead[0].searchCount || 0) + 1 };
       }),
 
     getSearchCount: publicProcedure
@@ -455,7 +453,7 @@ export const appRouter = router({
           return { searchesUsed: 0, searchesRemaining: 5 };
         }
 
-        const used = lead[0].freeSearchesUsed || 0;
+        const used = lead[0].searchCount || 0;
         return { searchesUsed: used, searchesRemaining: Math.max(0, 5 - used) };
       }),
 
@@ -482,7 +480,7 @@ export const appRouter = router({
           name: lead.name,
           email: lead.email,
           phone: lead.phone,
-          searchCount: lead.freeSearchesUsed || 0,
+          searchCount: lead.searchCount || 0,
           createdAt: lead.createdAt,
         }));
       }),
