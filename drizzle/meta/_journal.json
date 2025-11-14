@@ -1,0 +1,69 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1763086585812,
+      "tag": "0000_workable_the_watchers",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1763086643570,
+      "tag": "0001_charming_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1763087634842,
+      "tag": "0002_jittery_killer_shrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1763088224598,
+      "tag": "0003_common_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1763089279484,
+      "tag": "0004_fixed_sue_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1763091228322,
+      "tag": "0005_premium_mystique",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1763092242403,
+      "tag": "0006_useful_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1763119526021,
+      "tag": "0007_familiar_blacklash",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1763130266058,
+      "tag": "0008_fantastic_photon",
+      "breakpoints": true
+    }
+  ]
+}
