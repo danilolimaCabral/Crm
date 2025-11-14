@@ -565,6 +565,228 @@ export const appRouter = router({
         const { classifyNCM } = await import("./services/ncmClassification");
         return await classifyNCM(input.productDescription);
       }),
+
+    list: protectedProcedure
+      .input(z.object({
+        limit: z.number().positive().optional().default(50),
+      }))
+      .query(async ({ input, ctx }) => {
+        const { getUserQuotations } = await import("./db");
+        const quotations = await getUserQuotations(ctx.user.id, input.limit);
+        
+        return quotations.map(q => ({
+          id: q.id,
+          quotationName: q.quotationName,
+          incoterm: q.incoterm,
+          transportType: q.transportType,
+          totalLandedCost: q.totalLandedCost / 100,
+          status: q.status,
+          createdAt: q.createdAt,
+          updatedAt: q.updatedAt,
+        }));
+      }),
+
+    getById: protectedProcedure
+      .input(z.object({
+        id: z.number().positive(),
+      }))
+      .query(async ({ input, ctx }) => {
+        const { getQuotationById } = await import("./db");
+        const quotation = await getQuotationById(input.id, ctx.user.id);
+        
+        if (!quotation) {
+          throw new Error("Cotação não encontrada");
+        }
+
+        return {
+          ...quotation,
+          totalFob: quotation.totalFob / 100,
+          totalCustomsValue: quotation.totalCustomsValue / 100,
+          totalII: quotation.totalII / 100,
+          totalIPI: quotation.totalIPI / 100,
+          totalPIS: quotation.totalPIS / 100,
+          totalCofins: quotation.totalCofins / 100,
+          totalICMS: quotation.totalICMS / 100,
+          totalLandedCost: quotation.totalLandedCost / 100,
+          exchangeRate: quotation.exchangeRate / 100,
+          internationalFreight: quotation.internationalFreight / 100,
+          insurance: quotation.insurance / 100,
+          storage: quotation.storage / 100,
+          portFees: quotation.portFees / 100,
+          customsBrokerFees: quotation.customsBrokerFees / 100,
+          certifications: quotation.certifications / 100,
+          items: quotation.items.map(item => ({
+            ...item,
+            unitPriceFob: item.unitPriceFob / 100,
+            totalPriceFob: item.totalPriceFob / 100,
+            customsValue: item.customsValue / 100,
+            iiAmount: item.iiAmount / 100,
+            ipiAmount: item.ipiAmount / 100,
+            pisAmount: item.pisAmount / 100,
+            cofinsAmount: item.cofinsAmount / 100,
+            icmsAmount: item.icmsAmount / 100,
+            landedCostPerUnit: item.landedCostPerUnit / 100,
+            landedCostTotal: item.landedCostTotal / 100,
+            iiRate: item.iiRate / 100,
+            ipiRate: item.ipiRate / 100,
+            pisRate: item.pisRate / 100,
+            cofinsRate: item.cofinsRate / 100,
+            icmsRate: item.icmsRate / 100,
+          })),
+        };
+      }),
+
+    duplicate: protectedProcedure
+      .input(z.object({
+        id: z.number().positive(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { duplicateQuotation } = await import("./db");
+        const newId = await duplicateQuotation(input.id, ctx.user.id);
+        return { id: newId };
+      }),
+
+    save: protectedProcedure
+      .input(z.object({
+        quotationName: z.string(),
+        incoterm: z.string(),
+        transportType: z.string(),
+        currency: z.string(),
+        exchangeRate: z.number(),
+        internationalFreight: z.number(),
+        insurance: z.number(),
+        storage: z.number(),
+        portFees: z.number(),
+        customsBrokerFees: z.number(),
+        certifications: z.number(),
+        totalFob: z.number(),
+        totalCustomsValue: z.number(),
+        totalII: z.number(),
+        totalIPI: z.number(),
+        totalPIS: z.number(),
+        totalCofins: z.number(),
+        totalICMS: z.number(),
+        totalLandedCost: z.number(),
+        items: z.array(z.object({
+          description: z.string(),
+          ncmCode: z.string(),
+          quantity: z.number(),
+          unitPriceFob: z.number(),
+          totalPriceFob: z.number(),
+          grossWeight: z.number().optional(),
+          netWeight: z.number().optional(),
+          volume: z.number().optional(),
+          iiRate: z.number(),
+          ipiRate: z.number(),
+          pisRate: z.number(),
+          cofinsRate: z.number(),
+          icmsRate: z.number(),
+          customsValue: z.number(),
+          iiAmount: z.number(),
+          ipiAmount: z.number(),
+          pisAmount: z.number(),
+          cofinsAmount: z.number(),
+          icmsAmount: z.number(),
+          landedCostPerUnit: z.number(),
+          landedCostTotal: z.number(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { saveQuotation } = await import("./db");
+        const { quotations, quotationItems } = await import("../drizzle/schema");
+        
+        const quotationData = {
+          userId: ctx.user.id,
+          quotationName: input.quotationName,
+          incoterm: input.incoterm,
+          transportType: input.transportType,
+          currency: input.currency,
+          exchangeRate: Math.round(input.exchangeRate * 100),
+          internationalFreight: Math.round(input.internationalFreight * 100),
+          insurance: Math.round(input.insurance * 100),
+          storage: Math.round(input.storage * 100),
+          portFees: Math.round(input.portFees * 100),
+          customsBrokerFees: Math.round(input.customsBrokerFees * 100),
+          certifications: Math.round(input.certifications * 100),
+          totalFob: Math.round(input.totalFob * 100),
+          totalCustomsValue: Math.round(input.totalCustomsValue * 100),
+          totalII: Math.round(input.totalII * 100),
+          totalIPI: Math.round(input.totalIPI * 100),
+          totalPIS: Math.round(input.totalPIS * 100),
+          totalCofins: Math.round(input.totalCofins * 100),
+          totalICMS: Math.round(input.totalICMS * 100),
+          totalLandedCost: Math.round(input.totalLandedCost * 100),
+          status: "completed" as const,
+        };
+
+        const itemsData = input.items.map(item => ({
+          quotationId: 0, // Será preenchido após inserção
+          description: item.description,
+          ncmCode: item.ncmCode,
+          quantity: item.quantity,
+          unitPriceFob: Math.round(item.unitPriceFob * 100),
+          totalPriceFob: Math.round(item.totalPriceFob * 100),
+          grossWeight: item.grossWeight,
+          netWeight: item.netWeight,
+          volume: item.volume,
+          iiRate: Math.round(item.iiRate * 100),
+          ipiRate: Math.round(item.ipiRate * 100),
+          pisRate: Math.round(item.pisRate * 100),
+          cofinsRate: Math.round(item.cofinsRate * 100),
+          icmsRate: Math.round(item.icmsRate * 100),
+          customsValue: Math.round(item.customsValue * 100),
+          iiAmount: Math.round(item.iiAmount * 100),
+          ipiAmount: Math.round(item.ipiAmount * 100),
+          pisAmount: Math.round(item.pisAmount * 100),
+          cofinsAmount: Math.round(item.cofinsAmount * 100),
+          icmsAmount: Math.round(item.icmsAmount * 100),
+          landedCostPerUnit: Math.round(item.landedCostPerUnit * 100),
+          landedCostTotal: Math.round(item.landedCostTotal * 100),
+        }));
+
+        const quotationId = await saveQuotation(quotationData as any, itemsData as any);
+        return { id: quotationId };
+      }),
+  }),
+
+  // Rotas de Favoritos
+  favorites: router({
+    add: protectedProcedure
+      .input(z.object({
+        analysisId: z.number().positive(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { addFavorite, getUserFavorites } = await import("./db");
+        await addFavorite(ctx.user.id, input.analysisId);
+        const favorites = await getUserFavorites(ctx.user.id);
+        return { favorites };
+      }),
+
+    remove: protectedProcedure
+      .input(z.object({
+        analysisId: z.number().positive(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { removeFavorite, getUserFavorites } = await import("./db");
+        await removeFavorite(ctx.user.id, input.analysisId);
+        const favorites = await getUserFavorites(ctx.user.id);
+        return { favorites };
+      }),
+
+    list: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { getUserFavorites } = await import("./db");
+        return await getUserFavorites(ctx.user.id);
+      }),
+
+    check: protectedProcedure
+      .input(z.object({
+        analysisId: z.number().positive(),
+      }))
+      .query(async ({ input, ctx }) => {
+        const { isFavorite } = await import("./db");
+        return await isFavorite(ctx.user.id, input.analysisId);
+      }),
   }),
 });
 

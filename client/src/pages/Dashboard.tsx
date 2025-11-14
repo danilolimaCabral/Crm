@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Home, TrendingUp, DollarSign, Package, ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
+import FavoriteButton from "@/components/FavoriteButton";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -100,6 +102,76 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Gráficos */}
+        {totalAnalyses > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Gráfico Pizza - Viabilidade */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Distribuição de Viabilidade</CardTitle>
+                <CardDescription>Análises viáveis vs não viáveis</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Viáveis", value: viableCount, color: "#10b981" },
+                        { name: "Não Viáveis", value: totalAnalyses - viableCount, color: "#ef4444" },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {[
+                        { name: "Viáveis", value: viableCount, color: "#10b981" },
+                        { name: "Não Viáveis", value: totalAnalyses - viableCount, color: "#ef4444" },
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Gráfico Barras - Top 5 Margens */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Top 5 Produtos por Margem</CardTitle>
+                <CardDescription>Maiores margens de lucro identificadas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={analyses
+                      .slice()
+                      .sort((a, b) => b.profitMargin - a.profitMargin)
+                      .slice(0, 5)
+                      .map(a => ({
+                        name: a.productTitle.length > 20 
+                          ? a.productTitle.substring(0, 20) + "..." 
+                          : a.productTitle,
+                        margem: a.profitMargin,
+                      }))}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                    <YAxis />
+                    <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
+                    <Bar dataKey="margem" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Histórico Completo */}
         <Card>
           <CardHeader>
@@ -154,6 +226,7 @@ export default function Dashboard() {
                       <Badge variant={analysis.isViable ? "default" : "destructive"}>
                         {analysis.isViable ? "✅ Viável" : "❌ Não Viável"}
                       </Badge>
+                      <FavoriteButton analysisId={analysis.id} />
                     </div>
                   </div>
                 ))}

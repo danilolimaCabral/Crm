@@ -187,3 +187,16 @@ export const quotationItems = mysqlTable("quotationItems", {
 
 export type QuotationItem = typeof quotationItems.$inferSelect;
 export type InsertQuotationItem = typeof quotationItems.$inferInsert;
+
+/**
+ * Tabela para favoritos de análises
+ */
+export const favorites = mysqlTable("favorites", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  analysisId: int("analysisId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Favorite = typeof favorites.$inferSelect;
+export type InsertFavorite = typeof favorites.$inferInsert;

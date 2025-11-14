@@ -10,6 +10,8 @@ import Pricing from "./pages/Pricing";
 import PlanOnboarding from "./pages/PlanOnboarding";
 import AdminLeads from "./pages/AdminLeads";
 import Cotacao from "./pages/Cotacao";
+import Favoritos from "./pages/Favoritos";
+import Cotacoes from "./pages/Cotacoes";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -18,8 +20,10 @@ function Router() {
        <Route path={"/onboarding"} component={PlanOnboarding} />
       <Route path={"/"} component={Home} />
       <Route path={"/cotacao"} component={Cotacao} />
+      <Route path={"/cotacoes"} component={Cotacoes} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/favoritos" component={Favoritos} />
       <Route path="/admin/leads" component={AdminLeads} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

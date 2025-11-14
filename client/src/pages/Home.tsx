@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, TrendingUp, DollarSign, BarChart3, Sparkles, ArrowRight, CheckCircle2, LogOut, Calculator } from "lucide-react";
+import { Loader2, Search, TrendingUp, DollarSign, BarChart3, Sparkles, ArrowRight, CheckCircle2, LogOut, Calculator, Heart, FileText } from "lucide-react";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -332,7 +332,19 @@ export default function Home() {
             <Link href="/dashboard">
               <Button variant="outline">
                 <BarChart3 className="h-4 w-4 mr-2" />
-                Ver Dashboard
+                Dashboard
+              </Button>
+            </Link>
+            <Link href="/favoritos">
+              <Button variant="outline">
+                <Heart className="h-4 w-4 mr-2" />
+                Favoritos
+              </Button>
+            </Link>
+            <Link href="/cotacoes">
+              <Button variant="outline">
+                <FileText className="h-4 w-4 mr-2" />
+                Cotações
               </Button>
             </Link>
             <Button 
