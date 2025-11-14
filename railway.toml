@@ -1,0 +1,19 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pnpm install && pnpm build"
+
+[deploy]
+startCommand = "node dist/index.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "app"
+
+[services.env]
+NODE_ENV = "production"
+VITE_APP_TITLE = "Importador Inteligente"
+
+[[services]]
+name = "postgres"
+type = "database"
