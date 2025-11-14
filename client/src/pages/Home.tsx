@@ -538,7 +538,7 @@ export default function Home() {
                     </div>
                     
                     {/* Seção Amazon BR */}
-                    {analysis.amazonAvgPrice && analysis.amazonProductCount && (
+                    {(analysis as any).amazonAvgPrice && (analysis as any).amazonProductCount && (
                       <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-semibold text-orange-800 flex items-center gap-1">
@@ -548,7 +548,7 @@ export default function Home() {
                             Amazon BR
                           </span>
                           <a 
-                            href={analysis.amazonSearchUrl || `https://www.amazon.com.br/s?k=${encodeURIComponent(analysis.searchTerm)}`}
+                            href={(analysis as any).amazonSearchUrl || `https://www.amazon.com.br/s?k=${encodeURIComponent(analysis.searchTerm)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-orange-600 hover:text-orange-800 underline"
@@ -560,7 +560,7 @@ export default function Home() {
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-600">Preço Médio:</span>
                             <span className="font-semibold text-gray-900">
-                              R$ {(analysis.amazonAvgPrice! / 100).toFixed(2)}
+                              R$ {((analysis as any).amazonAvgPrice / 100).toFixed(2)}
                             </span>
                           </div>
                           <div className="flex justify-between text-xs">
@@ -572,7 +572,7 @@ export default function Home() {
                             </span>
                           </div>
                           <div className="text-xs text-gray-500">
-                            {analysis.amazonProductCount} produtos encontrados
+                            {(analysis as any).amazonProductCount} produtos encontrados
                           </div>
                         </div>
                       </div>

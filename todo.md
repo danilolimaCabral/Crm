@@ -594,13 +594,32 @@
 - [ ] Testar com diferentes termos de busca
 
 
-## 🏷️ Seção "Preço na Amazon BR" nos Cards (EM ANDAMENTO)
-- [ ] Atualizar interface ProductSuggestion para incluir dados da Amazon
-- [ ] Modificar aiProductSuggestions.ts para retornar preço médio Amazon
-- [ ] Adicionar URL de busca na Amazon
-- [ ] Calcular diferença percentual (margem real)
-- [ ] Atualizar componente de card no frontend
-- [ ] Adicionar seção visual com preço Amazon
-- [ ] Exibir badge "Vale Importar" (verde) ou "Não Vale" (vermelho)
-- [ ] Adicionar link "Ver na Amazon" abrindo em nova aba
-- [ ] Testar com diferentes produtos
+## 🏷️ Seção "Preço na Amazon BR" nos Cards (CONCLUÍDO ✅)
+- [x] Atualizar interface ProductSuggestion para incluir dados da Amazon
+- [x] Modificar aiProductSuggestions.ts para retornar preço médio Amazon
+- [x] Adicionar URL de busca na Amazon
+- [x] Calcular diferença percentual (margem real)
+- [x] Adicionar campos no schema do banco (amazonAvgPrice, amazonProductCount, amazonSearchUrl, amazonMinPrice, amazonMaxPrice)
+- [x] Aplicar migração do banco com pnpm db:push
+- [x] Atualizar componente de card no frontend (Home.tsx)
+- [x] Adicionar seção visual com preço Amazon (fundo laranja)
+- [x] Exibir diferença percentual com cores (verde > 30%, vermelho < 30%)
+- [x] Adicionar link "Ver →" abrindo Amazon em nova aba
+- [x] Ícone da Amazon no card
+- [x] Mostrar quantidade de produtos encontrados
+- [ ] Testar com dados reais da API
+
+
+## 🚀 Deploy no Vercel (CONCLUÍDO ✅)
+- [x] Criar arquivo vercel.json com configurações de rotas
+- [x] Configurar rotas API (/api/* → /api/index)
+- [x] Build scripts já configurados no package.json
+- [x] Criar arquivo .vercelignore
+- [x] Documentar variáveis de ambiente em DEPLOY_VERCEL.md
+- [x] Fazer push para GitHub (commit d3f9b6f)
+- [ ] Conectar repositório no Vercel (https://vercel.com/new)
+- [ ] Configurar variáveis de ambiente no Vercel
+- [ ] Fazer primeiro deploy
+- [ ] Testar aplicação em produção
+
+**PRÓXIMOS PASSOS**: Seguir guia em DEPLOY_VERCEL.md

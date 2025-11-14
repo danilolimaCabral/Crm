@@ -40,5 +40,14 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    watch: {
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+        '**/server/**',
+        '**/drizzle/**',
+      ],
+    },
   },
 });
