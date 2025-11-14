@@ -10,12 +10,14 @@ import Pricing from "./pages/Pricing";
 import PlanOnboarding from "./pages/PlanOnboarding";
 import AdminLeads from "./pages/AdminLeads";
 import Cotacao from "./pages/Cotacao";
+import Auth from "./pages/Auth";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-       <Route path={"/onboarding"} component={PlanOnboarding} />
+      <Route path={"/auth"} component={Auth} />
+      <Route path={"/onboarding"} component={PlanOnboarding} />
       <Route path={"/"} component={Home} />
       <Route path={"/cotacao"} component={Cotacao} />
       <Route path={"/dashboard"} component={Dashboard} />

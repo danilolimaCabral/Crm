@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import bcrypt from "bcryptjs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -18,122 +18,173 @@ export async function getDb() {
   return _db;
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
+/**
+ * Criar novo usuário com senha hash
+ */
+export async function createUser(data: {
+  email: string;
+  password: string;
+  name?: string;
+}): Promise<{ id: number; email: string; name: string | null }> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
+    throw new Error("Database not available");
   }
 
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
+  // Hash da senha
+  const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
+  const result = await db.insert(users).values({
+    email: data.email,
+    password: hashedPassword,
+    name: data.name || null,
+    subscriptionPlan: "none",
+    subscriptionStatus: "inactive",
+  });
 
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
+  // Buscar usuário criado
+  const newUser = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+    })
+    .from(users)
+    .where(eq(users.id, Number(result[0].insertId)))
+    .limit(1);
 
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
+  if (newUser.length === 0) {
+    throw new Error("Failed to create user");
   }
+
+  return newUser[0];
 }
 
-export async function getUserByOpenId(openId: string) {
+/**
+ * Verificar credenciais de login
+ */
+export async function verifyUserCredentials(
+  email: string,
+  password: string
+): Promise<{ id: number; email: string; name: string | null; role: string } | null> {
+  const db = await getDb();
+  if (!db) {
+    return null;
+  }
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (result.length === 0) {
+    return null;
+  }
+
+  const user = result[0];
+  const isValid = await bcrypt.compare(password, user.password);
+
+  if (!isValid) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  };
+}
+
+/**
+ * Buscar usuário por ID
+ */
+export async function getUserById(id: number) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user: database not available");
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
 
-// Análises de produtos
-
-import { analyses, InsertAnalysis } from "../drizzle/schema";
-import { desc } from "drizzle-orm";
-
-export async function saveAnalysis(analysis: InsertAnalysis) {
+/**
+ * Buscar usuário por email
+ */
+export async function getUserByEmail(email: string) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot save analysis: database not available");
-    return null;
+    return undefined;
   }
 
-  const result = await db.insert(analyses).values(analysis);
-  return result;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
 }
 
+/**
+ * Atualizar último login
+ */
+export async function updateLastSignIn(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({ lastSignedIn: new Date() })
+    .where(eq(users.id, userId));
+}
+
+/**
+ * Salvar análise de produto
+ */
+export async function saveAnalysis(data: any) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const { analyses } = await import("../drizzle/schema");
+  await db.insert(analyses).values(data);
+}
+
+/**
+ * Buscar análises do usuário
+ */
 export async function getUserAnalyses(userId: number, limit: number = 20) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get analyses: database not available");
     return [];
   }
 
-  const result = await db
+  const { analyses } = await import("../drizzle/schema");
+  const { desc } = await import("drizzle-orm");
+  
+  return await db
     .select()
     .from(analyses)
     .where(eq(analyses.userId, userId))
     .orderBy(desc(analyses.createdAt))
     .limit(limit);
-
-  return result;
 }
 
+/**
+ * Buscar análise por ID
+ */
 export async function getAnalysisById(id: number) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get analysis: database not available");
-    return null;
+    return undefined;
   }
 
-  const result = await db
-    .select()
-    .from(analyses)
-    .where(eq(analyses.id, id))
-    .limit(1);
+  const { analyses } = await import("../drizzle/schema");
+  const result = await db.select().from(analyses).where(eq(analyses.id, id)).limit(1);
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? result[0] : undefined;
 }

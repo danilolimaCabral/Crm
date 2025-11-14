@@ -64,6 +64,13 @@
       "when": 1763130266058,
       "tag": "0008_fantastic_photon",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1763134506268,
+      "tag": "0009_robust_sunspot",
+      "breakpoints": true
     }
   ]
 }
