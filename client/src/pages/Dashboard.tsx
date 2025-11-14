@@ -7,6 +7,8 @@ import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import FavoriteButton from "@/components/FavoriteButton";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { exportAnalysisToPDF } from "@/lib/pdfExport";
+import { Download } from "lucide-react";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -175,8 +177,47 @@ export default function Dashboard() {
         {/* Histórico Completo */}
         <Card>
           <CardHeader>
-            <CardTitle>Histórico de Análises</CardTitle>
-            <CardDescription>Todas as suas análises de produtos</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Histórico de Análises</CardTitle>
+                <CardDescription>Todas as suas análises de produtos</CardDescription>
+              </div>
+              {analyses.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    analyses.forEach(analysis => {
+                      exportAnalysisToPDF({
+                        productTitle: analysis.productTitle,
+                        productPlatform: analysis.productPlatform,
+                        priceUsd: analysis.priceUsd,
+                        productRating: analysis.productRating * 10,
+                        productImage: analysis.productImage || undefined,
+                        priceBrl: analysis.priceUsd * 5.25, // Aproximação
+                        importTax: 0,
+                        iof: 0,
+                        shippingCost: 0,
+                        totalCost: analysis.totalCost,
+                        avgPriceBr: analysis.avgPriceBr,
+                        minPriceBr: analysis.minPriceBr,
+                        maxPriceBr: analysis.maxPriceBr,
+                        totalSellers: analysis.totalSellers,
+                        competitionLevel: analysis.competitionLevel,
+                        profitMargin: analysis.profitMargin,
+                        opportunityScore: analysis.opportunityScore,
+                        isViable: analysis.isViable,
+                        recommendation: analysis.recommendation,
+                        searchTerm: analysis.searchTerm,
+                        createdAt: analysis.createdAt,
+                      });
+                    });
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Todas (PDF)
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {analyses.length === 0 ? (
@@ -227,6 +268,37 @@ export default function Dashboard() {
                         {analysis.isViable ? "✅ Viável" : "❌ Não Viável"}
                       </Badge>
                       <FavoriteButton analysisId={analysis.id} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          exportAnalysisToPDF({
+                            productTitle: analysis.productTitle,
+                            productPlatform: analysis.productPlatform,
+                            priceUsd: analysis.priceUsd,
+                            productRating: analysis.productRating * 10,
+                            productImage: analysis.productImage || undefined,
+                            priceBrl: analysis.priceUsd * 5.25,
+                            importTax: 0,
+                            iof: 0,
+                            shippingCost: 0,
+                            totalCost: analysis.totalCost,
+                            avgPriceBr: analysis.avgPriceBr,
+                            minPriceBr: analysis.minPriceBr,
+                            maxPriceBr: analysis.maxPriceBr,
+                            totalSellers: analysis.totalSellers,
+                            competitionLevel: analysis.competitionLevel,
+                            profitMargin: analysis.profitMargin,
+                            opportunityScore: analysis.opportunityScore,
+                            isViable: analysis.isViable,
+                            recommendation: analysis.recommendation,
+                            searchTerm: analysis.searchTerm,
+                            createdAt: analysis.createdAt,
+                          });
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
