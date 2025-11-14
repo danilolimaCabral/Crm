@@ -13,6 +13,8 @@ import AIChat from "@/components/AIChat";
 import PlanSelectionModal from "@/components/PlanSelectionModal";
 import LeadCaptureModal from "@/components/LeadCaptureModal";
 import ImportCalculator from "@/components/ImportCalculator";
+import SearchSuggestions from "@/components/SearchSuggestions";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 export default function Home() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -375,12 +377,14 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
                 <label className="text-sm font-medium mb-2 block">Produto</label>
-                <Input
-                  placeholder="Ex: fone bluetooth, smartwatch, câmera..."
+                <SearchSuggestions
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAnalyzeClick()}
-                  className="h-12"
+                  onChange={setSearchTerm}
+                  onSelect={(value) => {
+                    setSearchTerm(value);
+                    handleAnalyzeClick();
+                  }}
+                  placeholder="Ex: fone bluetooth, smartwatch, câmera..."
                 />
               </div>
               <div>
@@ -463,7 +467,7 @@ export default function Home() {
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold text-lg mb-2">💰 Análise Financeira</h3>
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-2 text-sm mb-4">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Custo Total Importado:</span>
                         <span className="font-semibold">R$ {analyzeMutation.data.custos.custo_total.toFixed(2)}</span>
@@ -480,6 +484,40 @@ export default function Home() {
                         <span className="text-gray-600">Margem de Lucro:</span>
                         <span className="font-bold text-blue-600">{analyzeMutation.data.margem_lucro_percentual.toFixed(1)}%</span>
                       </div>
+                    </div>
+                    
+                    {/* Gráfico de Composição de Custos */}
+                    <div className="mt-4">
+                      <h4 className="text-sm font-semibold mb-2">Composição de Custos</h4>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: "Produto", value: analyzeMutation.data.custos.preco_produto_brl, color: "#3b82f6" },
+                              { name: "Impostos", value: analyzeMutation.data.custos.imposto_importacao, color: "#ef4444" },
+                              { name: "IOF", value: analyzeMutation.data.custos.iof, color: "#f59e0b" },
+                              { name: "Frete", value: analyzeMutation.data.custos.frete_internacional, color: "#10b981" },
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={70}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {[
+                              { name: "Produto", value: analyzeMutation.data.custos.preco_produto_brl, color: "#3b82f6" },
+                              { name: "Impostos", value: analyzeMutation.data.custos.imposto_importacao, color: "#ef4444" },
+                              { name: "IOF", value: analyzeMutation.data.custos.iof, color: "#f59e0b" },
+                              { name: "Frete", value: analyzeMutation.data.custos.frete_internacional, color: "#10b981" },
+                            ].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
 
@@ -506,6 +544,55 @@ export default function Home() {
                     </div>
                     <p className="text-sm text-gray-700">{analyzeMutation.data.recomendacao}</p>
                   </div>
+
+                  {/* Seção Amazon BR */}
+                  {analyzeMutation.data.suggestions?.[0]?.amazonData && (
+                    <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-orange-800 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M.045 18.02c.072-.116.187-.124.348-.022 3.636 2.11 7.594 3.166 11.87 3.166 2.852 0 5.668-.533 8.447-1.595l.315-.14c.138-.06.234-.1.293-.13.226-.088.39-.046.525.13.12.174.09.336-.12.48-.256.19-.6.41-1.006.654-1.244.743-2.64 1.316-4.185 1.726-1.53.406-3.045.61-4.516.61-2.265 0-4.463-.407-6.59-1.22-2.13-.814-3.89-1.92-5.28-3.31-.14-.14-.127-.25.046-.39zm2.7-3.36c.13-.14.28-.14.45 0 .11.09 2.09 1.73 5.93 4.92.18.15.33.27.45.36.12.09.18.15.18.18 0 .03-.06.09-.18.18-.12.09-.27.21-.45.36-3.84 3.19-5.82 4.83-5.93 4.92-.17.14-.32.14-.45 0-.13-.14-.13-.28 0-.42l5.4-4.5-5.4-4.5c-.13-.14-.13-.28 0-.42z"/>
+                          </svg>
+                          Preço na Amazon BR
+                        </span>
+                        {analyzeMutation.data.suggestions[0].amazonData.searchUrl && (
+                          <a 
+                            href={analyzeMutation.data.suggestions[0].amazonData.searchUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-orange-600 hover:text-orange-800 underline"
+                          >
+                            Ver →
+                          </a>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Preço Médio:</span>
+                          <span className="font-semibold text-gray-900">
+                            R$ {analyzeMutation.data.suggestions[0].amazonData.avgPrice.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Faixa de Preço:</span>
+                          <span className="font-semibold text-gray-900">
+                            R$ {analyzeMutation.data.suggestions[0].amazonData.priceRange.min.toFixed(2)} - R$ {analyzeMutation.data.suggestions[0].amazonData.priceRange.max.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {analyzeMutation.data.suggestions[0].amazonData.productCount} produtos encontrados
+                        </div>
+                        <div className="mt-2">
+                          <Badge 
+                            variant={analyzeMutation.data.margem_lucro_percentual > 30 ? "default" : "destructive"}
+                            className="text-xs"
+                          >
+                            {analyzeMutation.data.margem_lucro_percentual > 30 ? "✅ Vale Importar" : "❌ Não Vale"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

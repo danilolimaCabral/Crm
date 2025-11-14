@@ -2,11 +2,12 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, ArrowLeft, Copy, Eye, Trash2 } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, Copy, Eye, Trash2, Download } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { exportQuotationToPDF } from "@/lib/pdfExport";
 
 export default function Cotacoes() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -26,6 +27,45 @@ export default function Cotacoes() {
   });
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [quotationToExport, setQuotationToExport] = useState<number | null>(null);
+  
+  const quotationForExport = trpc.quotation.getById.useQuery(
+    { id: quotationToExport! },
+    { enabled: !!quotationToExport }
+  );
+
+  useEffect(() => {
+    if (quotationForExport.data && quotationToExport) {
+      const data = quotationForExport.data;
+      exportQuotationToPDF({
+        quotationName: data.quotationName,
+        incoterm: data.incoterm,
+        transportType: data.transportType,
+        currency: data.currency,
+        exchangeRate: data.exchangeRate,
+        totalFob: data.totalFob,
+        totalCustomsValue: data.totalCustomsValue,
+        totalII: data.totalII,
+        totalIPI: data.totalIPI,
+        totalPIS: data.totalPIS,
+        totalCofins: data.totalCofins,
+        totalICMS: data.totalICMS,
+        totalLandedCost: data.totalLandedCost,
+        items: data.items.map((item: any) => ({
+          description: item.description,
+          ncmCode: item.ncmCode,
+          quantity: item.quantity,
+          unitPriceFob: item.unitPriceFob,
+          totalPriceFob: item.totalPriceFob,
+          landedCostPerUnit: item.landedCostPerUnit,
+          landedCostTotal: item.landedCostTotal,
+        })),
+        createdAt: data.createdAt,
+      });
+      toast.success("PDF exportado!");
+      setQuotationToExport(null);
+    }
+  }, [quotationForExport.data, quotationToExport]);
 
   if (authLoading || isLoading) {
     return (
@@ -62,11 +102,16 @@ export default function Cotacoes() {
     duplicateMutation.mutate({ id });
   };
 
+  const viewQuotationQuery = trpc.quotation.getById.useQuery(
+    { id: selectedId! },
+    { enabled: !!selectedId }
+  );
+
   const handleView = (id: number) => {
     setSelectedId(id);
-    // Redirecionar para página de cotação com ID
-    window.location.href = `/cotacao?id=${id}`;
+    viewQuotationQuery.refetch();
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -161,8 +206,17 @@ export default function Cotacoes() {
                       size="sm"
                       onClick={() => handleDuplicate(quotation.id)}
                       disabled={duplicateMutation.isPending}
+                      title="Duplicar"
                     >
                       <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuotationToExport(quotation.id)}
+                      title="Exportar PDF"
+                    >
+                      <Download className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>

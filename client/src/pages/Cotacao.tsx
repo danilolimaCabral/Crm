@@ -10,6 +10,7 @@ import { Upload, FileText, Package, Calculator, BarChart3, Download, Plus, Trash
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import UpgradeModal from "@/components/UpgradeModal";
+import { exportQuotationToPDF } from "@/lib/pdfExport";
 
 export default function Cotacao() {
   const { user, isAuthenticated } = useAuth();
@@ -20,6 +21,14 @@ export default function Cotacao() {
   const calculateMutation = trpc.quotation.calculate.useMutation();
   const dolarRateQuery = trpc.exchange.getDolarRate.useQuery();
   const classifyNCMMutation = trpc.quotation.classifyNCM.useMutation();
+  const saveQuotationMutation = trpc.quotation.save.useMutation({
+    onSuccess: () => {
+      toast.success("Cotação salva com sucesso!");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao salvar cotação");
+    },
+  });
   
   const [classifyingIndex, setClassifyingIndex] = useState<number | null>(null);
   
@@ -633,10 +642,100 @@ export default function Cotacao() {
                     <Button onClick={() => setStep(1)} variant="outline" size="lg">
                       Nova Cotação
                     </Button>
-                    <Button size="lg">
-                      <Download className="w-4 h-4 mr-2" />
-                      Exportar PDF
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        size="lg"
+                        onClick={() => {
+                          if (calculationResult) {
+                            saveQuotationMutation.mutate({
+                              quotationName: quotationName || "Cotação de Importação",
+                              incoterm: incoterm,
+                              transportType: transportType,
+                              currency: currency,
+                              exchangeRate: parseFloat(exchangeRate),
+                              internationalFreight: parseFloat(internationalFreight) || 0,
+                              insurance: parseFloat(insurance) || 0,
+                              storage: parseFloat(storage) || 0,
+                              portFees: parseFloat(portFees) || 0,
+                              customsBrokerFees: parseFloat(customsBrokerFees) || 0,
+                              certifications: parseFloat(certifications) || 0,
+                              totalFob: calculationResult.totals.fobValue,
+                              totalCustomsValue: calculationResult.totals.customsValue || calculationResult.totals.fobValue,
+                              totalII: calculationResult.totals.totalII,
+                              totalIPI: calculationResult.totals.totalIPI,
+                              totalPIS: calculationResult.totals.totalPIS,
+                              totalCofins: calculationResult.totals.totalCofins,
+                              totalICMS: calculationResult.totals.totalICMS,
+                              totalLandedCost: calculationResult.totals.landedCost,
+                              items: calculationResult.items.map((item: any) => ({
+                                description: item.description,
+                                ncmCode: item.ncmCode,
+                                quantity: item.quantity,
+                                unitPriceFob: item.unitPriceFob,
+                                totalPriceFob: item.totalPriceFob,
+                                grossWeight: item.grossWeight,
+                                netWeight: item.netWeight,
+                                volume: item.volume,
+                                iiRate: item.iiRate / 100,
+                                ipiRate: item.ipiRate / 100,
+                                pisRate: item.pisRate / 100,
+                                cofinsRate: item.cofinsRate / 100,
+                                icmsRate: item.icmsRate / 100,
+                                customsValue: item.customsValue,
+                                iiAmount: item.iiAmount,
+                                ipiAmount: item.ipiAmount,
+                                pisAmount: item.pisAmount,
+                                cofinsAmount: item.cofinsAmount,
+                                icmsAmount: item.icmsAmount,
+                                landedCostPerUnit: item.landedCostPerUnit,
+                                landedCostTotal: item.landedCostTotal,
+                              })),
+                            });
+                          }
+                        }}
+                        disabled={saveQuotationMutation.isPending}
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Salvar Cotação
+                      </Button>
+                      <Button 
+                        size="lg"
+                        onClick={() => {
+                          if (calculationResult) {
+                            exportQuotationToPDF({
+                              quotationName: quotationName || "Cotação de Importação",
+                              incoterm: incoterm,
+                              transportType: transportType,
+                              currency: currency,
+                              exchangeRate: parseFloat(exchangeRate),
+                              totalFob: calculationResult.totals.fobValue,
+                              totalCustomsValue: calculationResult.totals.customsValue || calculationResult.totals.fobValue,
+                              totalII: calculationResult.totals.totalII,
+                              totalIPI: calculationResult.totals.totalIPI,
+                              totalPIS: calculationResult.totals.totalPIS,
+                              totalCofins: calculationResult.totals.totalCofins,
+                              totalICMS: calculationResult.totals.totalICMS,
+                              totalLandedCost: calculationResult.totals.landedCost,
+                              items: calculationResult.items.map((item: any) => ({
+                                description: item.description,
+                                ncmCode: item.ncmCode,
+                                quantity: item.quantity,
+                                unitPriceFob: item.unitPriceFob,
+                                totalPriceFob: item.totalPriceFob,
+                                landedCostPerUnit: item.landedCostPerUnit,
+                                landedCostTotal: item.landedCostTotal,
+                              })),
+                              createdAt: new Date(),
+                            });
+                            toast.success("PDF exportado com sucesso!");
+                          }
+                        }}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Exportar PDF
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : (

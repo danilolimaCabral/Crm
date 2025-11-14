@@ -8,11 +8,15 @@ import { Link } from "wouter";
 import FavoriteButton from "@/components/FavoriteButton";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { exportAnalysisToPDF } from "@/lib/pdfExport";
-import { Download } from "lucide-react";
+import { Download, Filter, ArrowUpDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useMemo } from "react";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const historyQuery = trpc.import.history.useQuery({ limit: 50 });
+  const [sortBy, setSortBy] = useState<"date" | "margin" | "score">("date");
+  const [filterViable, setFilterViable] = useState<"all" | "viable" | "not-viable">("all");
 
   if (authLoading || historyQuery.isLoading) {
     return (
@@ -22,14 +26,41 @@ export default function Dashboard() {
     );
   }
 
-  const analyses = historyQuery.data || [];
-  const viableCount = analyses.filter(a => a.isViable).length;
-  const totalAnalyses = analyses.length;
+  const allAnalyses = historyQuery.data || [];
+  
+  // Filtros
+  const filteredAnalyses = useMemo(() => {
+    let filtered = [...allAnalyses];
+    
+    if (filterViable === "viable") {
+      filtered = filtered.filter(a => a.isViable);
+    } else if (filterViable === "not-viable") {
+      filtered = filtered.filter(a => !a.isViable);
+    }
+    
+    // Ordenação
+    filtered.sort((a, b) => {
+      if (sortBy === "date") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      } else if (sortBy === "margin") {
+        return b.profitMargin - a.profitMargin;
+      } else if (sortBy === "score") {
+        return b.opportunityScore - a.opportunityScore;
+      }
+      return 0;
+    });
+    
+    return filtered;
+  }, [allAnalyses, sortBy, filterViable]);
+  
+  const analyses = filteredAnalyses;
+  const viableCount = allAnalyses.filter(a => a.isViable).length;
+  const totalAnalyses = allAnalyses.length;
   const avgScore = totalAnalyses > 0
-    ? analyses.reduce((sum, a) => sum + a.opportunityScore, 0) / totalAnalyses
+    ? allAnalyses.reduce((sum, a) => sum + a.opportunityScore, 0) / totalAnalyses
     : 0;
   const avgMargin = totalAnalyses > 0
-    ? analyses.reduce((sum, a) => sum + a.profitMargin, 0) / totalAnalyses
+    ? allAnalyses.reduce((sum, a) => sum + a.profitMargin, 0) / totalAnalyses
     : 0;
 
   return (
@@ -177,12 +208,35 @@ export default function Dashboard() {
         {/* Histórico Completo */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <CardTitle>Histórico de Análises</CardTitle>
                 <CardDescription>Todas as suas análises de produtos</CardDescription>
               </div>
-              {analyses.length > 0 && (
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Select value={filterViable} onValueChange={(value: any) => setFilterViable(value)}>
+                  <SelectTrigger className="w-full sm:w-[150px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filtrar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="viable">Apenas Viáveis</SelectItem>
+                    <SelectItem value="not-viable">Não Viáveis</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-full sm:w-[150px]">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Ordenar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">Data (Recente)</SelectItem>
+                    <SelectItem value="margin">Margem (Maior)</SelectItem>
+                    <SelectItem value="score">Score (Maior)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {allAnalyses.length > 0 && (
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -216,7 +270,8 @@ export default function Dashboard() {
                   <Download className="h-4 w-4 mr-2" />
                   Exportar Todas (PDF)
                 </Button>
-              )}
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -245,6 +300,14 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate">{analysis.productTitle}</h3>
                       <p className="text-sm text-gray-600">{analysis.productPlatform}</p>
+                      {analysis.amazonAvgPrice && (
+                        <div className="mt-1 text-xs text-orange-600 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M.045 18.02c.072-.116.187-.124.348-.022 3.636 2.11 7.594 3.166 11.87 3.166 2.852 0 5.668-.533 8.447-1.595l.315-.14c.138-.06.234-.1.293-.13.226-.088.39-.046.525.13.12.174.09.336-.12.48-.256.19-.6.41-1.006.654-1.244.743-2.64 1.316-4.185 1.726-1.53.406-3.045.61-4.516.61-2.265 0-4.463-.407-6.59-1.22-2.13-.814-3.89-1.92-5.28-3.31-.14-.14-.127-.25.046-.39zm2.7-3.36c.13-.14.28-.14.45 0 .11.09 2.09 1.73 5.93 4.92.18.15.33.27.45.36.12.09.18.15.18.18 0 .03-.06.09-.18.18-.12.09-.27.21-.45.36-3.84 3.19-5.82 4.83-5.93 4.92-.17.14-.32.14-.45 0-.13-.14-.13-.28 0-.42l5.4-4.5-5.4-4.5c-.13-.14-.13-.28 0-.42z"/>
+                          </svg>
+                          Amazon: R$ {(analysis.amazonAvgPrice / 100).toFixed(2)}
+                        </div>
+                      )}
                       <p className="text-xs text-gray-500">
                         {new Date(analysis.createdAt).toLocaleDateString("pt-BR", {
                           day: "2-digit",

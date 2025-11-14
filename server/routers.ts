@@ -107,6 +107,12 @@ export const appRouter = router({
           totalSellers: Math.max(0, result.analise_mercado?.total_vendedores || mainProduct?.brazilPrices?.reduce((sum, p) => sum + (p.sellers || 0), 0) || 10),
           competitionLevel: String(result.analise_mercado?.nivel_concorrencia || mainProduct?.competitionLevel || 'Média'),
           avgRatingBr: Math.max(0, Math.round((result.analise_mercado?.avaliacao_media || (mainProduct?.brazilPrices?.[0]?.rating || 45) / 10 || 4.5) * 10)),
+          // Dados da Amazon BR
+          amazonAvgPrice: mainProduct?.amazonData ? Math.round(mainProduct.amazonData.avgPrice * 100) : null,
+          amazonProductCount: mainProduct?.amazonData?.productCount || null,
+          amazonSearchUrl: mainProduct?.amazonData?.searchUrl || null,
+          amazonMinPrice: mainProduct?.amazonData ? Math.round(mainProduct.amazonData.priceRange.min * 100) : null,
+          amazonMaxPrice: mainProduct?.amazonData ? Math.round(mainProduct.amazonData.priceRange.max * 100) : null,
           profitMargin: Math.round((result.margem_lucro_percentual !== undefined ? result.margem_lucro_percentual : margem_lucro || 0) * 10),
           opportunityScore: Math.max(0, Math.round((result.score_oportunidade || mainProduct?.opportunityScore || 50) * 10)),
           isViable: result.viavel ? 1 : 0,
