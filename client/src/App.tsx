@@ -11,6 +11,7 @@ import PlanOnboarding from "./pages/PlanOnboarding";
 import AdminLeads from "./pages/AdminLeads";
 import Cotacao from "./pages/Cotacao";
 import Auth from "./pages/Auth";
+import LiveLanding from "./pages/LiveLanding";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -23,6 +24,7 @@ function Router() {
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/admin/leads" component={AdminLeads} />
+      <Route path="/live" component={LiveLanding} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -54,7 +54,11 @@ RAPIDAPI_KEY=sua-chave-rapidapi
 ```
 NODE_ENV=production
 VITE_APP_TITLE=Importador Inteligente
+LIVE_STREAM_URL=https://sua-live.com/sala
+VITE_LIVE_STREAM_URL=https://sua-live.com/sala
 ```
+
+`LIVE_STREAM_URL` é usado pelo backend para montar o link final enviado junto com o código de autenticação; já `VITE_LIVE_STREAM_URL` garante um fallback seguro na camada de frontend.
 
 ## 📋 Checklist de Deploy
 
