@@ -96,7 +96,10 @@ export const leads = pgTable("leads", {
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }).notNull().unique(),
   phone: varchar("phone", { length: 20 }),
+  clientType: varchar("client_type", { length: 20 }),
   searchCount: integer("search_count").default(0).notNull(),
+  liveAccessCode: varchar("live_access_code", { length: 12 }),
+  liveRegisteredAt: timestamp("live_registered_at"),
   
   // Dados de rastreamento
   source: varchar("source", { length: 50 }), // De onde veio (google, facebook, direto)

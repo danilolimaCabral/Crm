@@ -4,6 +4,10 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 
+const clientTypeEnum = z.enum(["macro", "micro", "nao_cliente"]);
+
+const generateLiveAccessCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -374,6 +378,7 @@ export const appRouter = router({
         name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
         email: z.string().email("Email inválido"),
         phone: z.string().optional(),
+        clientType: clientTypeEnum.optional(),
       }))
       .mutation(async ({ input }) => {
         const { getDb } = await import("./db");
@@ -398,6 +403,7 @@ export const appRouter = router({
           name: input.name,
           email: input.email,
           phone: input.phone || null,
+          clientType: input.clientType || null,
           source: "website",
         }).returning({ id: leads.id });
 
@@ -483,6 +489,68 @@ export const appRouter = router({
           searchCount: lead.searchCount || 0,
           createdAt: lead.createdAt,
         }));
+      }),
+  }),
+
+  live: router({
+    register: publicProcedure
+      .input(z.object({
+        name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+        email: z.string().email("Email inválido"),
+        phone: z.string().min(10, "WhatsApp inválido"),
+        clientType: clientTypeEnum,
+      }))
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const { leads } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const db = await getDb();
+
+        if (!db) {
+          throw new Error("Banco de dados não disponível");
+        }
+
+        const sanitizedPhone = input.phone.trim().replace(/[^+\d]/g, "");
+        const now = new Date();
+        const code = generateLiveAccessCode();
+
+        const existing = await db.select().from(leads).where(eq(leads.email, input.email)).limit(1);
+
+        let leadId: number;
+        if (existing.length > 0) {
+          await db
+            .update(leads)
+            .set({
+              name: input.name,
+              phone: sanitizedPhone || existing[0].phone,
+              clientType: input.clientType,
+              liveAccessCode: code,
+              liveRegisteredAt: now,
+              source: existing[0].source || "live",
+            })
+            .where(eq(leads.id, existing[0].id));
+
+          leadId = existing[0].id;
+        } else {
+          const inserted = await db.insert(leads).values({
+            name: input.name,
+            email: input.email,
+            phone: sanitizedPhone || null,
+            clientType: input.clientType,
+            source: "live",
+            liveAccessCode: code,
+            liveRegisteredAt: now,
+          }).returning({ id: leads.id });
+
+          leadId = inserted[0].id;
+        }
+
+        return {
+          leadId: leadId.toString(),
+          code,
+          liveUrl: process.env.LIVE_STREAM_URL || "https://macroimport.com/live",
+          existing: existing.length > 0,
+        };
       }),
   }),
 
