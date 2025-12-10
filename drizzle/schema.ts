@@ -32,7 +32,7 @@ export const users = pgTable("users", {
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  lastSignedIn: timestamp("last_signed_in").defaultNow().notNull(),
+  lastSignedIn: timestamp("last_signed_in"),
 });
 
 export type User = typeof users.$inferSelect;
@@ -43,7 +43,7 @@ export type InsertUser = typeof users.$inferInsert;
  */
 export const analyses = pgTable("analyses", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   searchTerm: varchar("search_term", { length: 255 }).notNull(),
   
   // Dados do produto na China
@@ -115,7 +115,7 @@ export type InsertLead = typeof leads.$inferInsert;
  */
 export const quotations = pgTable("quotations", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   
   // Dados gerais
   quotationName: varchar("quotation_name", { length: 255 }).notNull(),
@@ -153,7 +153,7 @@ export type InsertQuotation = typeof quotations.$inferInsert;
  */
 export const quotationItems = pgTable("quotation_items", {
   id: serial("id").primaryKey(),
-  quotationId: integer("quotation_id").notNull(),
+  quotationId: integer("quotation_id").notNull().references(() => quotations.id, { onDelete: "cascade" }),
   
   // Dados do produto
   description: text("description").notNull(),
