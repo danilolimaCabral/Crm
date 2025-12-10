@@ -1,624 +1,979 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { type ReactNode, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  CalendarRange,
+  Compass,
+  Download,
+  MapPin,
+  Music3,
+  Navigation,
+  Phone,
+  Rss,
+  Search,
+  Share2,
+  Sparkles,
+  Star,
+  Sun,
+  Sunrise,
+  Sunset,
+  Thermometer,
+  Ticket,
+  Trees,
+  UtensilsCrossed,
+  Wind,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, TrendingUp, DollarSign, BarChart3, Sparkles, ArrowRight, CheckCircle2, LogOut, Calculator } from "lucide-react";
-import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
-import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
-import { Link, useLocation } from "wouter";
-import AIChat from "@/components/AIChat";
-import PlanSelectionModal from "@/components/PlanSelectionModal";
-import LeadCaptureModal from "@/components/LeadCaptureModal";
-import ImportCalculator from "@/components/ImportCalculator";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+
+const announcements = [
+  "Menu Turístico agora também em Porto Rico",
+  "Empresas locais com destaque premium em dezembro",
+  "Novos mapas temáticos de ecoturismo disponíveis",
+];
+
+const currencyCards = [
+  { label: "Dólar Turismo", value: "R$ 5,50", variation: "+0,62%" },
+  { label: "Euro Turismo", value: "R$ 6,39", variation: "+0,57%" },
+  { label: "Peso Argentino", value: "R$ 0,027", variation: "-0,10%" },
+];
+
+const cities = [
+  {
+    name: "Maringá",
+    state: "PR",
+    badge: "Capital Verde",
+    mapPreview:
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+    stats: {
+      spots: 326,
+      experiences: "12 roteiros guiados",
+      weather: "26°C"
+    },
+  },
+  {
+    name: "Porto Rico",
+    state: "PR",
+    badge: "Paraíso no Rio Paraná",
+    mapPreview:
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    stats: {
+      spots: 58,
+      experiences: "Passeios náuticos",
+      weather: "32°C"
+    },
+  },
+];
+
+const heroStats = [
+  { label: "+320 lugares verificados", description: "Restaurantes, passeios e hotéis" },
+  { label: "12 mapas temáticos", description: "Com rotas exclusivas pelo time local" },
+  { label: "Eventos atualizados", description: "Agenda cultural e gastronômica diária" },
+];
+
+const categories = [
+  {
+    title: "Comer Bem",
+    description: "Do café da manhã ao jantar com curadoria local",
+    items: [
+      "Pizzarias",
+      "Churrascarias",
+      "Hamburguerias",
+      "Docerias",
+      "Padarias",
+      "Saudável",
+    ],
+    accent: "text-orange-600",
+    background: "bg-gradient-to-br from-orange-50 via-white to-orange-100/40",
+  },
+  {
+    title: "Turismo & Natureza",
+    description: "Bosques, parques, cachoeiras e experiências guiadas",
+    items: ["Parques", "Ecoturismo", "Turismo Regional", "Religioso", "Passeios"],
+    accent: "text-emerald-600",
+    background: "bg-gradient-to-br from-emerald-50 via-white to-emerald-100/40",
+  },
+  {
+    title: "Bares & Entretenimento",
+    description: "Baladas, bares autorais e programas noturnos",
+    items: ["Bares", "Baladas", "Shows", "Agenda cultural", "Festivais"],
+    accent: "text-purple-600",
+    background: "bg-gradient-to-br from-purple-50 via-white to-purple-100/40",
+  },
+];
+
+const featuredSpots = [
+  {
+    title: "Parque do Ingá",
+    type: "Natureza",
+    rating: 4.9,
+    distance: "1,2 km do centro",
+    image:
+      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80",
+    tags: ["Trilhas", "Família", "Gratuito"],
+  },
+  {
+    title: "Mercadão de Maringá",
+    type: "Gastronomia",
+    rating: 4.8,
+    distance: "Centro histórico",
+    image:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+    tags: ["Comer bem", "Compras", "Regional"],
+  },
+  {
+    title: "Catedral Basílica",
+    type: "Arquitetura",
+    rating: 4.9,
+    distance: "Marco da cidade",
+    image:
+      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80",
+    tags: ["Cartão-postal", "Mirante"],
+  },
+  {
+    title: "Praia de Porto Rico",
+    type: "Rotas Náuticas",
+    rating: 4.7,
+    distance: "2h de Maringá",
+    image:
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+    tags: ["Passeios de barco", "Pôr do sol"],
+  },
+];
+
+const promotionalEvents = [
+  {
+    title: "Rota Comer Bem - Sabores do Ingá",
+    date: "12 Dez",
+    hour: "19h",
+    place: "Mercadão de Maringá",
+    highlight: "Menu degustação com 8 casas convidadas",
+    tags: ["Gastronomia", "Hoje"],
+  },
+  {
+    title: "Festival Brasa & Chopp",
+    date: "13 Dez",
+    hour: "18h",
+    place: "Vila Olímpica",
+    highlight: "Chefs convidados + cervejarias artesanais",
+    tags: ["Fim de semana", "Família"],
+  },
+  {
+    title: "Tour de Cafeterias",
+    date: "14 Dez",
+    hour: "10h",
+    place: "Zona 01",
+    highlight: "Roteiro guiado por 5 casas especiais",
+    tags: ["Manhã", "Gastronomia"],
+  },
+];
+
+const culturalEvents = [
+  {
+    title: "Concerto ao pôr do sol",
+    date: "14 Dez",
+    hour: "17h",
+    place: "Parque do Japão",
+    highlight: "Filarmônica de Maringá em concerto gratuito",
+    tags: ["Família", "Ao ar livre"],
+  },
+  {
+    title: "Rota dos Murais",
+    date: "15 Dez",
+    hour: "09h",
+    place: "Centro histórico",
+    highlight: "Tour fotográfico pelos novos grafites",
+    tags: ["Arte urbana", "Hoje"],
+  },
+  {
+    title: "Feira Criativa",
+    date: "15 Dez",
+    hour: "10h",
+    place: "Praça Renato Celidônio",
+    highlight: "Artistas independentes, música e gastronomia",
+    tags: ["Fim de semana", "Família"],
+  },
+];
+
+const discoveryList = [
+  {
+    title: "Bosco Rooftop",
+    category: "Bares e Baladas",
+    rating: 4.9,
+    neighborhood: "Zona 03",
+    highlight: "Drinks autorais + vista panorâmica",
+    tags: ["Sunset", "Pet friendly"],
+  },
+  {
+    title: "Arautos do Evangelho",
+    category: "Turismo Religioso",
+    rating: 4.8,
+    neighborhood: "Distrito de Floriano",
+    highlight: "Arquitetura europeia e visitas guiadas",
+    tags: ["História", "Cultural"],
+  },
+  {
+    title: "Parque Alfredo Nyffeler",
+    category: "Natureza",
+    rating: 4.7,
+    neighborhood: "Zona Norte",
+    highlight: "Trilhas suspensas e lago para esportes",
+    tags: ["Ao ar livre", "Família"],
+  },
+  {
+    title: "Mercadinho do Centro",
+    category: "Comer Bem",
+    rating: 4.8,
+    neighborhood: "Zona 01",
+    highlight: "Produtores locais e café autoral",
+    tags: ["Local", "Gastronomia"],
+  },
+];
+
+const blogPosts = [
+  {
+    title: "48 horas em Maringá: roteiro completo",
+    category: "Guia rápido",
+    readingTime: "7 min",
+    excerpt: "Do café da manhã no Novo Centro ao pôr do sol no Parque do Japão.",
+    image:
+      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    title: "Onde comer bem depois da meia-noite",
+    category: "Comer Bem",
+    readingTime: "5 min",
+    excerpt: "Selecionamos casas que funcionam até tarde com cozinha completa.",
+    image:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    title: "As 6 experiências para quem visita Porto Rico",
+    category: "Turismo",
+    readingTime: "6 min",
+    excerpt: "Passeios de barco, gastronomia ribeirinha e pôr do sol na orla.",
+    image:
+      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80",
+  },
+];
+
+const partnerLogos = [
+  "Prefeitura",
+  "ABRASEL",
+  "Turismo PR",
+  "SEBRAE",
+  "Parque do Japão",
+];
+
+const filters = ["Todos", "Hoje", "Fim de semana", "Família", "Ao ar livre", "Gastronomia"] as const;
+
+type Filter = (typeof filters)[number];
+
+const applyFilter = (list: typeof promotionalEvents, filter: Filter) => {
+  if (filter === "Todos") return list;
+  return list.filter((event) => event.tags.includes(filter));
+};
 
 export default function Home() {
-  const { user, loading: authLoading, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
-  
-  // Buscar informações de uso
-  const { data: usageInfo } = trpc.user.getUsage.useQuery(undefined, {
-    enabled: isAuthenticated,
-    refetchInterval: 10000, // Atualizar a cada 10s
-  });
-  
-  // Redirecionar para onboarding se usuário não tiver plano escolhido
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const plan = user.subscriptionPlan;
-      // Redirecionar se não tiver plano ou plano for "none"
-      if (!plan || plan === "none") {
-        setLocation("/onboarding");
-      }
-    }
-  }, [isAuthenticated, user, setLocation]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [exchangeRate, setExchangeRate] = useState("5.25");
-  const [showResults, setShowResults] = useState(false);
-  const [showPlanModal, setShowPlanModal] = useState(false);
-  const [showLeadModal, setShowLeadModal] = useState(false);
-  const [leadId, setLeadId] = useState<string | null>(null);
-  const [searchesRemaining, setSearchesRemaining] = useState(5);
-  const [loadingMessage, setLoadingMessage] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState(cities[0]);
+  const [activeFilter, setActiveFilter] = useState<Filter>(filters[0]);
 
-  // Verificar se é um lead (não logado) e carregar contador
-  useEffect(() => {
-    if (!isAuthenticated) {
-      const storedLeadId = localStorage.getItem("leadId");
-      if (storedLeadId) {
-        setLeadId(storedLeadId);
-      } else {
-        // Mostrar modal de captura de lead
-        setShowLeadModal(true);
-      }
-    }
-  }, [isAuthenticated]);
-
-  // Carregar contador de pesquisas para leads
-  const searchCountQuery = trpc.leads.getSearchCount.useQuery(
-    { leadId: leadId || "" },
-    { enabled: !!leadId && !isAuthenticated }
+  const promotional = useMemo(
+    () => applyFilter(promotionalEvents, activeFilter),
+    [activeFilter]
   );
 
-  useEffect(() => {
-    if (searchCountQuery.data) {
-      setSearchesRemaining(searchCountQuery.data.searchesRemaining);
-    }
-  }, [searchCountQuery.data]);
-
-  const analyzeMutation = trpc.import.analyze.useMutation({
-    onSuccess: () => {
-      setShowResults(true);
-      setLoadingMessage("");
-      toast.success("Análise concluída com sucesso!");
-      // Limpar histórico anterior
-      historyQuery.refetch();
-    },
-    onError: (error) => {
-      setLoadingMessage("");
-      toast.error(error.message);
-    },
-  });
-
-  // Simular progresso da análise
-  useEffect(() => {
-    if (analyzeMutation.isPending) {
-      setLoadingMessage("🔍 Analisando sites chineses...");
-      
-      const timer1 = setTimeout(() => {
-        setLoadingMessage("🇧🇷 Analisando sites brasileiros...");
-      }, 2000);
-      
-      const timer2 = setTimeout(() => {
-        setLoadingMessage("🤖 IA calculando viabilidade...");
-      }, 4000);
-      
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
-    }
-  }, [analyzeMutation.isPending]);
-
-  const historyQuery = trpc.import.history.useQuery(
-    { limit: 6 },
-    { enabled: isAuthenticated }
+  const cultural = useMemo(
+    () => applyFilter(culturalEvents, activeFilter),
+    [activeFilter]
   );
 
-  const incrementSearchMutation = trpc.leads.incrementSearchCount.useMutation();
-  
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/auth";
-  };
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <TopInfoBar />
+      <PrimaryNavigation />
 
-  const handleAnalyzeClick = () => {
-    if (!searchTerm.trim()) {
-      toast.error("Digite o nome de um produto");
-      return;
-    }
+      <main>
+        <HeroSection
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          selectedCity={selectedCity}
+          onSelectCity={setSelectedCity}
+        />
 
-    const rate = parseFloat(exchangeRate);
-    if (isNaN(rate) || rate <= 0) {
-      toast.error("Digite uma cotação válida do dólar");
-      return;
-    }
+        <CityHighlights selectedCity={selectedCity} />
 
-    // Se for lead (não logado)
-    if (!isAuthenticated && leadId) {
-      // Verificar limite de pesquisas
-      if (searchesRemaining <= 0) {
-        toast.error("Você atingiu o limite de 5 análises gratuitas! Faça login para continuar.");
-        setTimeout(() => {
-          window.location.href = getLoginUrl();
-        }, 2000);
-        return;
-      }
-
-      // Incrementar contador e executar análise
-      incrementSearchMutation.mutate(
-        { leadId },
-        {
-          onSuccess: () => {
-            setSearchesRemaining(prev => prev - 1);
-            analyzeMutation.mutate({
-              searchTerm: searchTerm.trim(),
-              exchangeRate: rate,
-            });
-          },
-        }
-      );
-      return;
-    }
-
-    // Se for usuário logado
-    if (isAuthenticated) {
-      // Verificar se já tem plano ativo
-      if (user?.subscriptionPlan && user.subscriptionPlan !== 'none') {
-        // Já tem plano, executar análise direto
-        analyzeMutation.mutate({
-          searchTerm: searchTerm.trim(),
-          exchangeRate: rate,
-        });
-      } else {
-        // Não tem plano, mostrar modal
-        setShowPlanModal(true);
-      }
-    }
-  };
-
-  const handlePlanSelected = (plan: 'free' | 'pro' | 'premium') => {
-    // Executar análise após selecionar plano
-    const rate = parseFloat(exchangeRate);
-    analyzeMutation.mutate({
-      searchTerm: searchTerm.trim(),
-      exchangeRate: rate,
-    });
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        {/* Hero Section */}
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-          <div className="max-w-4xl mx-auto text-center space-y-8">
-            {/* Logo e Título */}
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                <Sparkles className="h-4 w-4" />
-                Powered by AI
-              </div>
-              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Importador Inteligente
-              </h1>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Sua IA aliada para encontrar produtos lucrativos na China e ganhar dinheiro importando para o Brasil
-              </p>
-              {leadId && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                  🎁 {searchesRemaining}/5 análises gratuitas restantes
+        <SectionIntro
+          title="Explorar por categorias"
+          subtitle="Curadoria feita por quem vive a cidade todos os dias"
+        />
+        <div className="container grid gap-6 pb-16 lg:grid-cols-3">
+          {categories.map((category) => (
+            <Card
+              key={category.title}
+              className={`${category.background} border-0 shadow-sm`}
+            >
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl font-semibold">
+                    {category.title}
+                  </CardTitle>
+                  <Badge variant="secondary" className="bg-white/40">
+                    ver rotas
+                  </Badge>
                 </div>
-              )}
-            </div>
-
-            {/* CTA Principal */}
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  size="lg"
-                  className="text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  onClick={() => window.location.href = getLoginUrl()}
-                >
-                  Começar Agora - É Grátis
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Link href="/pricing">
-                  <Button
-                    size="lg"
+                <CardDescription>{category.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                {category.items.map((item) => (
+                  <Badge
+                    key={item}
                     variant="outline"
-                    className="text-lg px-8 py-6"
+                    className={`rounded-full border-none bg-white/70 ${category.accent}`}
                   >
-                    Ver Planos e Preços
-                  </Button>
-                </Link>
-              </div>
-              <p className="text-sm text-gray-500">
-                Sem cartão de crédito • 5 análises grátis • Cancele quando quiser
-              </p>
-            </div>
-
-            {/* Features Grid */}
-            <div className="grid md:grid-cols-3 gap-6 mt-16">
-              <Card className="border-2 hover:border-blue-300 transition-colors">
-                <CardHeader>
-                  <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                    <Search className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <CardTitle className="text-lg">Busca Inteligente</CardTitle>
-                  <CardDescription>
-                    Pesquisa simultânea em AliExpress, Alibaba, Temu e Taobao
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="border-2 hover:border-purple-300 transition-colors">
-                <CardHeader>
-                  <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                    <DollarSign className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <CardTitle className="text-lg">Cálculo Automático</CardTitle>
-                  <CardDescription>
-                    Impostos, IOF, frete e margem de lucro calculados automaticamente
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="border-2 hover:border-green-300 transition-colors">
-                <CardHeader>
-                  <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                    <TrendingUp className="h-6 w-6 text-green-600" />
-                  </div>
-                  <CardTitle className="text-lg">Score de Oportunidade</CardTitle>
-                  <CardDescription>
-                    IA analisa viabilidade e sugere os melhores produtos para importar
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </div>
-
-            {/* Benefícios */}
-            <div className="mt-16 bg-white rounded-2xl p-8 shadow-lg">
-              <h2 className="text-2xl font-bold mb-6">Por que usar o Importador Inteligente?</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                {[
-                  "Economize 90% do tempo de pesquisa",
-                  "Elimine erros de cálculo de impostos",
-                  "Identifique nichos lucrativos rapidamente",
-                  "Compare preços China vs Brasil automaticamente",
-                  "Análise de concorrência em tempo real",
-                  "Histórico completo de todas as análises",
-                ].map((benefit, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{benefit}</span>
-                  </div>
+                    {item}
+                  </Badge>
                 ))}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <SectionIntro
+          title="Locais em destaque nesta semana"
+          subtitle="Conteúdo atualizado com fotos e avaliações reais"
+          action="ver todos"
+        />
+        <FeaturedSpots />
+
+        <SectionIntro
+          title="Agenda oficial"
+          subtitle="Promoções gastronômicas e cultura para planejar seu dia"
+        />
+        <EventsSection
+          activeFilter={activeFilter}
+          onChangeFilter={setActiveFilter}
+          promotional={promotional}
+          cultural={cultural}
+        />
+
+        <SectionIntro
+          title="Descobertas da comunidade"
+          subtitle="Locais salvos pelos moradores e viajantes que usam o Menu"
+        />
+        <DiscoveryList />
+
+        <SectionIntro title="Blog & notícias" subtitle="Roteiros, novidades e bastidores" />
+        <BlogGrid />
+
+        <Partners />
+        <AppCallToAction />
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+function TopInfoBar() {
+  return (
+    <div className="border-b border-slate-200 bg-white/80 backdrop-blur">
+      <div className="container flex flex-wrap items-center gap-6 py-3 text-sm">
+        <div className="flex flex-col gap-1 text-slate-500">
+          <div className="flex items-center gap-2 text-orange-600">
+            <Sun className="h-4 w-4" />
+            <span className="text-xs uppercase tracking-wide">Atualização diária</span>
+          </div>
+          <div className="flex flex-wrap gap-3 text-slate-600">
+            {announcements.map((announcement) => (
+              <span key={announcement} className="flex items-center gap-2">
+                <span className="text-orange-400">•</span>
+                {announcement}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <Separator orientation="vertical" className="hidden h-8 md:block" />
+
+        <div className="flex flex-wrap gap-4 text-slate-600">
+          <div className="flex items-center gap-2">
+            <Thermometer className="h-4 w-4 text-sky-500" />
+            26°C / sensação 28°
+          </div>
+          <div className="flex items-center gap-2">
+            <Wind className="h-4 w-4 text-emerald-500" />
+            Ventos 14 km/h
+          </div>
+          <div className="flex items-center gap-2">
+            <Sunrise className="h-4 w-4 text-yellow-500" /> 05:35
+          </div>
+          <div className="flex items-center gap-2">
+            <Sunset className="h-4 w-4 text-purple-500" /> 18:47
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  // Usuário autenticado
+function PrimaryNavigation() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Importador Inteligente
-            </h1>
-            <p className="text-gray-600">Olá, {user?.name || "Importador"}! Pronto para encontrar oportunidades?</p>
+    <div className="border-b border-slate-200 bg-white/95">
+      <div className="container flex flex-wrap items-center gap-4 py-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-white font-semibold">
+            MT
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
-            {usageInfo && (
-              <Badge variant="secondary" className="text-sm">
-                {usageInfo.remaining}/{usageInfo.limit} análises restantes
-              </Badge>
-            )}
-            <Link href="/cotacao">
-              <Button variant="outline" className="relative">
-                <Calculator className="h-4 w-4 mr-2" />
-                Cotação Profissional
-                <Badge className="ml-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-1.5 py-0.5">
-                  PRO
-                </Badge>
-              </Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button variant="outline">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Ver Dashboard
-              </Button>
-            </Link>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                handleLogout();
-                toast.success("Logout realizado com sucesso!");
-              }}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
+          <div>
+            <p className="text-base font-semibold text-slate-900">Menu Turístico</p>
+            <p className="text-xs uppercase tracking-wide text-orange-500">
+              login aberto
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-wrap items-center gap-2 text-sm">
+          <Button variant="ghost" className="text-slate-600">
+            Comer Bem
+          </Button>
+          <Button variant="ghost" className="text-slate-600">
+            Turismo
+          </Button>
+          <Button variant="ghost" className="text-slate-600">
+            Agenda
+          </Button>
+          <Button variant="ghost" className="text-slate-600">
+            Blog
+          </Button>
+          <Button variant="ghost" className="text-slate-600">
+            Planos
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="rounded-full">
+            Divulgue seu negócio
+          </Button>
+          <Button className="rounded-full bg-orange-500 px-6 text-white hover:bg-orange-600">
+            Acessar painel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type HeroProps = {
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  selectedCity: (typeof cities)[0];
+  onSelectCity: (city: (typeof cities)[0]) => void;
+};
+
+function HeroSection({ searchTerm, onSearchChange, selectedCity, onSelectCity }: HeroProps) {
+  return (
+    <section className="relative isolate overflow-hidden bg-gradient-to-br from-orange-50 via-white to-slate-50">
+      <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top,_#fed7aa,_transparent_55%)] lg:block" />
+      <div className="container grid items-center gap-12 pt-16 pb-20 lg:grid-cols-[1.15fr,0.85fr]">
+        <div className="space-y-8">
+          <Badge variant="outline" className="border-orange-200 text-orange-600">
+            Turismo inteligente • Curadoria local
+          </Badge>
+          <div className="space-y-6">
+            <h1 className="text-4xl font-semibold leading-tight text-slate-900 lg:text-5xl">
+              Descubra onde comer, passear e se divertir em {selectedCity.name}
+            </h1>
+            <p className="text-lg text-slate-600 lg:text-xl">
+              Agenda em tempo real, roteiros guiados e os melhores lugares para curtir a cidade.
+              Tudo em um só lugar, atualizado diariamente pelo time Menu Turístico.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+            <p className="text-sm font-medium text-slate-500">Planeje sua próxima saída</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {cities.map((city) => (
+                <Button
+                  key={city.name}
+                  variant={city.name === selectedCity.name ? "default" : "secondary"}
+                  className={`rounded-full ${city.name === selectedCity.name ? "bg-orange-500 hover:bg-orange-600" : "bg-slate-100 text-slate-700"}`}
+                  onClick={() => onSelectCity(city)}
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  {city.name}
+                </Button>
+              ))}
+            </div>
+
+            <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  O que você procura?
+                </label>
+                <div className="mt-2 flex items-center gap-3">
+                  <Search className="h-5 w-5 text-orange-500" />
+                  <Input
+                    value={searchTerm}
+                    onChange={(event) => onSearchChange(event.target.value)}
+                    placeholder="Ex: brunch, parque, hotel pet friendly"
+                    className="border-0 bg-transparent text-base text-slate-800 focus-visible:ring-0"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+                  <p className="text-xs text-slate-500">Data</p>
+                  <p className="font-semibold text-slate-800">10 Dez - 15 Dez</p>
+                  <span className="text-xs text-slate-500">Atualize para ver agenda personalizada</span>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+                  <p className="text-xs text-slate-500">Perfil</p>
+                  <p className="font-semibold text-slate-800">Família + Gastronomia</p>
+                  <span className="text-xs text-orange-500">Novo filtro "cidade com crianças"</span>
+                </div>
+              </div>
+            </div>
+
+            <Button className="mt-4 w-full rounded-2xl bg-slate-900 py-6 text-lg text-white hover:bg-slate-800">
+              Explorar agora
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {heroStats.map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm shadow-sm">
+                <p className="text-base font-semibold text-slate-900">{stat.label}</p>
+                <p className="text-slate-500">{stat.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Search Section */}
-        <Card className="mb-8 border-2 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Analisar Produto
-            </CardTitle>
-            <CardDescription>
-              Digite o nome do produto e veja se vale a pena importar
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium mb-2 block">Produto</label>
-                <Input
-                  placeholder="Ex: fone bluetooth, smartwatch, câmera..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAnalyzeClick()}
-                  className="h-12"
-                />
+        <div className="relative">
+          <div className="relative overflow-hidden rounded-[32px] border border-orange-100 bg-white shadow-2xl">
+            <img
+              src={selectedCity.mapPreview}
+              alt={selectedCity.name}
+              className="h-80 w-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+            <div className="absolute bottom-0 w-full space-y-3 px-6 pb-6 text-white">
+              <div className="flex items-center gap-2 text-sm uppercase tracking-wide">
+                <Navigation className="h-4 w-4" />
+                {selectedCity.badge}
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Cotação do Dólar (R$)</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="5.25"
-                  value={exchangeRate}
-                  onChange={(e) => setExchangeRate(e.target.value)}
-                  className="h-12"
-                />
+                <h3 className="text-2xl font-semibold">{selectedCity.name}</h3>
+                <p className="text-sm text-white/80">{selectedCity.stats.experiences}</p>
+              </div>
+              <div className="flex gap-4 text-sm">
+                <span>{selectedCity.stats.spots} lugares</span>
+                <span>Clima {selectedCity.stats.weather}</span>
               </div>
             </div>
-            <Button
-              onClick={handleAnalyzeClick}
-              disabled={analyzeMutation.isPending}
-              size="lg"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              {analyzeMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {loadingMessage || "Analisando..."}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Analisar com IA
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-gray-500 text-center">
-              Produtos disponíveis: fone bluetooth, smartwatch, câmera, mouse gamer, teclado mecânico, caixa de som
-            </p>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Results */}
-        {analyzeMutation.data && showResults && (
-          <Card className="mb-8 border-2 shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Resultado da Análise</CardTitle>
-                <Badge
-                  variant={analyzeMutation.data.viavel ? "default" : "destructive"}
-                  className="text-sm px-3 py-1"
-                >
-                  {analyzeMutation.data.viavel ? "✅ VIÁVEL" : "❌ NÃO VIÁVEL"}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Produto */}
-                <div className="space-y-4">
+          <div className="absolute -left-6 top-6 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Cotação turismo</p>
+            <div className="mt-3 space-y-3 text-sm">
+              {currencyCards.map((currency) => (
+                <div key={currency.label} className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-lg mb-2">📦 Produto na China</h3>
-                    {analyzeMutation.data.productChina.imagem && (
-                      <img
-                        src={analyzeMutation.data.productChina.imagem}
-                        alt={analyzeMutation.data.productChina.titulo}
-                        className="w-full h-48 object-cover rounded-lg mb-3"
-                      />
-                    )}
-                    <p className="text-sm text-gray-700">{analyzeMutation.data.productChina.titulo}</p>
-                    <p className="text-xs text-gray-500">Plataforma: {analyzeMutation.data.productChina.plataforma}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="text-lg font-bold text-green-600">
-                        ${analyzeMutation.data.productChina.preco_usd.toFixed(2)}
-                      </span>
-                      <span className="text-sm text-gray-600">
-                        ⭐ {analyzeMutation.data.productChina.avaliacao.toFixed(1)}
-                      </span>
-                    </div>
+                    <p className="font-medium text-slate-800">{currency.label}</p>
+                    <p className="text-xs text-slate-500">Atualizado agora</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-slate-900">{currency.value}</p>
+                    <p className="text-xs text-emerald-500">{currency.variation}</p>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                {/* Análise */}
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">💰 Análise Financeira</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Custo Total Importado:</span>
-                        <span className="font-semibold">R$ {analyzeMutation.data.custos.custo_total.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Preço Médio no Brasil:</span>
-                        <span className="font-semibold">R$ {analyzeMutation.data.analise_mercado.preco_medio_ponderado.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between border-t pt-2">
-                        <span className="text-gray-600">Lucro por Unidade:</span>
-                        <span className="font-bold text-green-600">R$ {((analyzeMutation.data.analise_mercado.preco_medio_ponderado - analyzeMutation.data.custos.custo_total)).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Margem de Lucro:</span>
-                        <span className="font-bold text-blue-600">{analyzeMutation.data.margem_lucro_percentual.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  </div>
+          <div className="absolute -right-6 bottom-8 w-48 rounded-2xl border border-slate-200 bg-white/95 p-4 text-sm shadow-xl">
+            <p className="flex items-center gap-2 text-slate-500">
+              <Sparkles className="h-4 w-4 text-orange-500" />
+              Highlights do dia
+            </p>
+            <ul className="mt-3 space-y-2 text-slate-700">
+              <li>• 3 lugares novos cadastrados</li>
+              <li>• 2 mapas atualizados</li>
+              <li>• 1 evento exclusivo para assinantes</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">📊 Concorrência</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total de Vendedores:</span>
-                        <span className="font-semibold">{analyzeMutation.data.analise_mercado.total_vendedores}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Nível:</span>
-                        <span className="font-semibold">{analyzeMutation.data.analise_mercado.nivel_concorrencia}</span>
-                      </div>
-                    </div>
-                  </div>
+function CityHighlights({ selectedCity }: { selectedCity: (typeof cities)[0] }) {
+  return (
+    <section className="container -mt-8 space-y-6 pb-12 lg:-mt-16">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-slate-500">Cidade atual</p>
+            <h3 className="text-2xl font-semibold text-slate-900">
+              {selectedCity.name}, {selectedCity.state}
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+            <span className="flex items-center gap-2">
+              <Trees className="h-4 w-4 text-emerald-500" /> {selectedCity.stats.spots} pontos verdes
+            </span>
+            <span className="flex items-center gap-2">
+              <CalendarRange className="h-4 w-4 text-slate-500" /> Agenda atualizada
+            </span>
+            <span className="flex items-center gap-2">
+              <Compass className="h-4 w-4 text-orange-500" /> Rotas guiadas
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold">Score de Oportunidade</span>
-                      <span className="text-2xl font-bold text-purple-600">
-                        {analyzeMutation.data.score_oportunidade.toFixed(0)}/100
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700">{analyzeMutation.data.recomendacao}</p>
-                  </div>
+function FeaturedSpots() {
+  return (
+    <div className="container pb-16">
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {featuredSpots.map((spot) => (
+          <Card key={spot.title} className="min-w-[280px] flex-1 border-0 shadow-lg">
+            <div className="relative">
+              <img
+                src={spot.image}
+                alt={spot.title}
+                className="h-48 w-full rounded-3xl object-cover"
+                loading="lazy"
+              />
+              <Badge className="absolute left-4 top-4 rounded-full bg-white/90 text-slate-900">
+                {spot.type}
+              </Badge>
+            </div>
+            <CardContent className="space-y-3 pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">{spot.title}</CardTitle>
+                  <CardDescription>{spot.distance}</CardDescription>
+                </div>
+                <div className="flex items-center gap-1 text-orange-500">
+                  <Star className="h-4 w-4 fill-orange-500" />
+                  <span className="font-semibold text-slate-900">{spot.rating}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {spot.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="rounded-full">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type EventsProps = {
+  activeFilter: Filter;
+  onChangeFilter: (filter: Filter) => void;
+  promotional: typeof promotionalEvents;
+  cultural: typeof culturalEvents;
+};
+
+function EventsSection({ activeFilter, onChangeFilter, promotional, cultural }: EventsProps) {
+  const renderCard = (title: string, events: typeof promotionalEvents, accent: string, icon: ReactNode) => (
+    <Card className="border-0 shadow-lg">
+      <CardHeader className="space-y-3 border-b border-slate-100">
+        <div className="flex items-center gap-3 text-slate-500">
+          {icon}
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-400">Agenda</p>
+            <CardTitle className="text-2xl text-slate-900">{title}</CardTitle>
+          </div>
+        </div>
+        <p className="text-sm text-slate-500">
+          Atualizado diariamente com os eventos oficiais e parceiros
+        </p>
+      </CardHeader>
+      <CardContent className="divide-y divide-slate-100 p-0">
+        {events.map((event) => (
+          <div key={event.title} className="flex flex-col gap-2 p-5 hover:bg-slate-50/70">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  {event.date} • {event.hour}
+                </p>
+                <p className="text-lg font-semibold text-slate-900">{event.title}</p>
+              </div>
+              <Badge className={`rounded-full ${accent}`}>{event.place}</Badge>
+            </div>
+            <p className="text-sm text-slate-600">{event.highlight}</p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {event.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="rounded-full">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <section className="container space-y-6 pb-16">
+      <div className="flex flex-wrap gap-3">
+        {filters.map((filter) => (
+          <Button
+            key={filter}
+            variant={filter === activeFilter ? "default" : "secondary"}
+            className={`rounded-full ${filter === activeFilter ? "bg-slate-900 hover:bg-slate-800" : "bg-slate-100 text-slate-700"}`}
+            onClick={() => onChangeFilter(filter)}
+          >
+            {filter}
+          </Button>
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {renderCard(
+          "Promoções & Gastronomia",
+          promotional,
+          "bg-orange-100 text-orange-600",
+          <UtensilsCrossed className="h-10 w-10 rounded-2xl bg-orange-50 p-2 text-orange-500" />
+        )}
+        {renderCard(
+          "Cultura & Turismo",
+          cultural,
+          "bg-purple-100 text-purple-600",
+          <Music3 className="h-10 w-10 rounded-2xl bg-purple-50 p-2 text-purple-500" />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DiscoveryList() {
+  return (
+    <section className="container pb-16">
+      <div className="grid gap-4">
+        {discoveryList.map((item) => (
+          <Card key={item.title} className="border border-slate-100 shadow-sm">
+            <CardContent className="flex flex-col gap-4 p-5 text-sm md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-400">{item.category}</p>
+                <h4 className="text-xl font-semibold text-slate-900">{item.title}</h4>
+                <p className="text-slate-600">{item.highlight}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2 text-orange-500">
+                  <Star className="h-4 w-4 fill-orange-500" />
+                  {item.rating}
+                </div>
+                <Badge variant="outline" className="rounded-full">
+                  {item.neighborhood}
+                </Badge>
+                <div className="flex flex-wrap gap-2">
+                  {item.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="rounded-full">
+                      {tag}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             </CardContent>
           </Card>
-        )}
+        ))}
+      </div>
+    </section>
+  );
+}
 
-        {/* Calculadora de Importação */}
-        {analyzeMutation.data && (
-          <ImportCalculator
-            productPriceUsd={analyzeMutation.data.productChina.preco_usd}
-            exchangeRate={parseFloat(exchangeRate)}
-            productTitle={analyzeMutation.data.productChina.titulo}
-          />
-        )}
+function BlogGrid() {
+  return (
+    <section className="container grid gap-6 pb-16 lg:grid-cols-3">
+      {blogPosts.map((post) => (
+        <Card key={post.title} className="overflow-hidden border-0 shadow-lg">
+          <img src={post.image} alt={post.title} className="h-48 w-full object-cover" loading="lazy" />
+          <CardContent className="space-y-3 p-6">
+            <Badge variant="outline" className="rounded-full">
+              {post.category}
+            </Badge>
+            <CardTitle className="text-2xl">{post.title}</CardTitle>
+            <CardDescription>{post.excerpt}</CardDescription>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <Rss className="h-4 w-4" />
+              {post.readingTime}
+            </div>
+            <Button variant="link" className="px-0 text-orange-600">
+              Ler matéria
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+    </section>
+  );
+}
 
-        {/* Histórico */}
-        {historyQuery.data && historyQuery.data.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Análises Recentes</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {historyQuery.data.map((analysis) => (
-                <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    {analysis.productImage && (
-                      <img
-                        src={analysis.productImage}
-                        alt={analysis.productTitle}
-                        className="w-full h-32 object-cover rounded-lg mb-2"
-                      />
-                    )}
-                    <CardTitle className="text-base line-clamp-2">{analysis.productTitle}</CardTitle>
-                    <CardDescription className="text-xs">{analysis.productPlatform}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Margem:</span>
-                      <span className="font-semibold text-green-600">{analysis.profitMargin.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Score:</span>
-                      <span className="font-semibold text-purple-600">{analysis.opportunityScore.toFixed(0)}/100</span>
-                    </div>
-                    
-                    {/* Seção Amazon BR */}
-                    {(analysis as any).amazonAvgPrice && (analysis as any).amazonProductCount && (
-                      <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-semibold text-orange-800 flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M.045 18.02c.072-.116.187-.124.348-.022 3.636 2.11 7.594 3.166 11.87 3.166 2.852 0 5.668-.533 8.447-1.595l.315-.14c.138-.06.234-.1.293-.13.226-.088.39-.046.525.13.12.174.09.336-.12.48-.256.19-.6.41-1.006.654-1.244.743-2.64 1.316-4.185 1.726-1.53.406-3.045.61-4.516.61-2.265 0-4.463-.407-6.59-1.22-2.13-.814-3.89-1.92-5.28-3.31-.14-.14-.127-.25.046-.39zm2.7-3.36c.13-.14.28-.14.45 0 .11.09 2.09 1.73 5.93 4.92.18.15.33.27.45.36.12.09.18.15.18.18 0 .03-.06.09-.18.18-.12.09-.27.21-.45.36-3.84 3.19-5.82 4.83-5.93 4.92-.17.14-.32.14-.45 0-.13-.14-.13-.28 0-.42l5.4-4.5-5.4-4.5c-.13-.14-.13-.28 0-.42z"/>
-                            </svg>
-                            Amazon BR
-                          </span>
-                          <a 
-                            href={(analysis as any).amazonSearchUrl || `https://www.amazon.com.br/s?k=${encodeURIComponent(analysis.searchTerm)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-orange-600 hover:text-orange-800 underline"
-                          >
-                            Ver →
-                          </a>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">Preço Médio:</span>
-                            <span className="font-semibold text-gray-900">
-                              R$ {((analysis as any).amazonAvgPrice / 100).toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">Diferença:</span>
-                            <span className={`font-semibold ${
-                              analysis.profitMargin > 30 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {analysis.profitMargin > 0 ? '+' : ''}{analysis.profitMargin.toFixed(1)}%
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {(analysis as any).amazonProductCount} produtos encontrados
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <Badge variant={analysis.isViable ? "default" : "destructive"} className="w-full justify-center">
-                      {analysis.isViable ? "✅ Viável" : "❌ Não Viável"}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))}
+function Partners() {
+  return (
+    <section className="border-y border-slate-200 bg-white/60">
+      <div className="container flex flex-wrap items-center justify-between gap-4 py-10">
+        {partnerLogos.map((partner) => (
+          <span key={partner} className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+            {partner}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AppCallToAction() {
+  return (
+    <section className="container py-16">
+      <div className="grid gap-10 overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-10 text-white lg:grid-cols-2">
+        <div className="space-y-6">
+          <Badge variant="outline" className="border-white/30 text-white">
+            App Menu Turístico
+          </Badge>
+          <h3 className="text-3xl font-semibold">Leve os mapas offline e roteiros na palma da mão</h3>
+          <p className="text-slate-200">
+            Favoritos sincronizados, notificações de eventos exclusivos e suporte direto com o time local.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <Button className="rounded-full bg-white px-6 text-slate-900 hover:bg-slate-100">
+              <Download className="mr-2 h-4 w-4" /> Baixar app
+            </Button>
+            <Button variant="outline" className="rounded-full border-white/40 text-white">
+              <Share2 className="mr-2 h-4 w-4" /> Enviar para WhatsApp
+            </Button>
+          </div>
+          <div className="flex gap-6 text-sm text-white/70">
+            <div>
+              <p className="text-2xl font-semibold text-white">4.9</p>
+              <p>nota média</p>
+            </div>
+            <div>
+              <p className="text-2xl font-semibold text-white">25k+</p>
+              <p>downloads</p>
             </div>
           </div>
-        )}
+        </div>
+        <div className="grid gap-4 text-sm text-white/80">
+          <Card className="border-white/20 bg-white/5">
+            <CardContent className="flex items-center gap-3 p-5">
+              <Phone className="h-10 w-10 rounded-2xl bg-white/10 p-2" />
+              <div>
+                <p className="text-base font-semibold text-white">Central de concierge</p>
+                <p>Envie uma mensagem e receba recomendações personalizadas.</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-white/20 bg-white/5">
+            <CardContent className="flex items-center gap-3 p-5">
+              <Ticket className="h-10 w-10 rounded-2xl bg-white/10 p-2" />
+              <div>
+                <p className="text-base font-semibold text-white">Vantagens exclusivas</p>
+                <p>Ingressos com desconto e reservas prioritárias em parceiros.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+    </section>
+  );
+}
 
-      {/* Chat de IA */}
-      <AIChat
-        context={{
-          lastAnalysis: analyzeMutation.data
-            ? {
-                produto: analyzeMutation.data.searchTerm,
-                margemLucro: analyzeMutation.data.margem_lucro_percentual,
-                scoreOportunidade: analyzeMutation.data.score_oportunidade,
-                viavel: analyzeMutation.data.viavel,
-              }
-            : undefined,
-        }}
-      />
+function Footer() {
+  return (
+    <footer className="border-t border-slate-200 bg-white">
+      <div className="container grid gap-8 py-10 md:grid-cols-4">
+        <div className="space-y-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-white text-lg font-semibold">
+            MT
+          </div>
+          <p className="text-sm text-slate-600">
+            Guia oficial para viver experiências em Maringá e região noroeste.
+          </p>
+          <p className="text-xs text-slate-500">Atualizado em 10 dez 2025</p>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Explorar</p>
+          <ul className="mt-3 space-y-2 text-sm text-slate-600">
+            <li>Comer Bem</li>
+            <li>Turismo</li>
+            <li>Eventos</li>
+            <li>Blog</li>
+          </ul>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Institucional</p>
+          <ul className="mt-3 space-y-2 text-sm text-slate-600">
+            <li>Sobre</li>
+            <li>Planos para negócios</li>
+            <li>Imprensa</li>
+            <li>Contato</li>
+          </ul>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Baixe o app</p>
+          <div className="mt-3 space-y-3">
+            <Button className="w-full rounded-2xl bg-slate-900 text-white">App Store</Button>
+            <Button variant="outline" className="w-full rounded-2xl">
+              Google Play
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        Menu Turístico • 2025 • Feito em Maringá, PR
+      </div>
+    </footer>
+  );
+}
 
-      {/* Modal de Seleção de Plano */}
-      <PlanSelectionModal
-        open={showPlanModal}
-        onClose={() => setShowPlanModal(false)}
-        onPlanSelected={handlePlanSelected}
-      />
-
-      {/* Modal de Captura de Lead */}
-      <LeadCaptureModal
-        open={showLeadModal}
-        onSuccess={(id) => {
-          setLeadId(id);
-          localStorage.setItem("leadId", id);
-          setShowLeadModal(false);
-          setSearchesRemaining(5);
-        }}
-      />
+function SectionIntro({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle: string;
+  action?: string;
+}) {
+  return (
+    <div className="container flex flex-wrap items-center justify-between gap-4 py-10">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-slate-400">Menu Turístico</p>
+        <h2 className="text-3xl font-semibold text-slate-900">{title}</h2>
+        <p className="text-slate-600">{subtitle}</p>
+      </div>
+      {action && (
+        <Button variant="link" className="text-orange-600">
+          {action}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }
