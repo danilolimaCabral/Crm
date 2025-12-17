@@ -401,6 +401,16 @@ export const appRouter = router({
           source: "website",
         }).returning({ id: leads.id });
 
+        // Enviar webhook para Control Tower
+        const { sendLeadWebhook } = await import("./services/controlTowerWebhook");
+        sendLeadWebhook({
+          id: result[0].id,
+          name: input.name,
+          email: input.email,
+          phone: input.phone,
+          source: "website",
+        }).catch(err => console.error("[ControlTower] Erro ao enviar webhook de lead:", err));
+
         return { leadId: result[0].id.toString(), existing: false };
       }),
 
